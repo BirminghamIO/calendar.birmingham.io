@@ -1,6 +1,19 @@
 var ical = require("ical"),
     async = require("async"),
-    request = require("request");
+    request = require("request"),
+    config = require("./config"),
+    googleapis = require('googleapis');
+
+var CLIENT_ID = config.CLIENTID;
+var CLIENT_SECRET = config.CLIENTSECRET;
+ 
+var SERVICE_ACCOUNT_EMAIL = '721976846481-1s5altpg8afuc4opnlr13nua86hg0ul9@developer.gserviceaccount.com';
+var SERVICE_ACCOUNT_KEY_FILE = './key.pem';
+var jwt = new googleapis.auth.JWT(
+        SERVICE_ACCOUNT_EMAIL,
+        SERVICE_ACCOUNT_KEY_FILE,
+        null,
+        ['https://www.googleapis.com/auth/calendar']);
 
 function fetchIcalUrlsFromLocalFile(cb) {
     cb(null, [
@@ -10,7 +23,8 @@ function fetchIcalUrlsFromLocalFile(cb) {
 }
 
 // first, get a list of ics urls from various places
-async.parallel([
+function mainJob() {
+    async.parallel([
         fetchIcalUrlsFromLocalFile
     ], function(err, results) {
         if (err) {
@@ -52,14 +66,19 @@ async.parallel([
                     console.log("We failed to create a list of events", err);
                     return;
                 }
-                console.log("here are a zillion events");
-                for (var k in results) {
-                    if (results.hasOwnProperty(k)) {
-                        var ev = results[k];
-                        console.log("Conference", ev.summary, 'is in', ev.location,
-                            'on the', ev.start.getDate(), 'of month', ev.start.getMonth());
+                console.log(results.length);
+                // blow away the contents of the Google calendar
+                jwt.authorize(function(err, tokens) {
+                    if (err) {
+                        console.log(err);
+                        return;
                     }
-                }
+                    var gcal = googleapis.calendar('v3');
+                    gcal.events.list({auth: jwt, calendarId: 'limeblast.co.uk_343bi2q6qgpt5rc95nrjemq34s@group.calendar.google.com'}, function(err, resp) {
+                        console.log("got response", err, resp);
+                    });
+                });
             });
         });
     });
+}
