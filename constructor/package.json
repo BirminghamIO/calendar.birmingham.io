@@ -1,0 +1,26 @@
+{
+  "name": "calendar-bio-constructor",
+  "version": "0.0.0",
+  "description": "Fetches all constituent calendars, combines them, stores them in the back end, and rebuilds the website",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BirminghamIO/calendar"
+  },
+  "author": "Stuart Langridge <sil@kryogenix.org>",
+  "license": "Apache",
+  "bugs": {
+    "url": "https://github.com/BirminghamIO/calendar/issues"
+  },
+  "dependencies": {
+    "ical": "~0.3.1",
+    "async": "~0.9.0",
+    "request": "~2.47.0",
+    "passport": "~0.2.1",
+    "passport-google-oauth": "~0.1.5",
+    "google-calendar": "~1.3.1"
+  }
+}
