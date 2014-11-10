@@ -15,11 +15,34 @@ var jwt = new googleapis.auth.JWT(
         null,
         ['https://www.googleapis.com/auth/calendar']);
 
+var MEETUP_KEY = config.MEETUPKEY;
+var MEETUP_URL = "https://api.meetup.com/find/groups?" +
+                    "&sign=true" +
+                    "&photo-host=public" +
+                    "&category=34" + /* Technology */
+                    "&lat=52.483056&lon=-1.893611" + /* Birmingham */
+                    "&radius=5" + /* radius (in miles) */
+                    "&page=40" + /* results per page */
+                    "&key=";
+
 function fetchIcalUrlsFromLocalFile(cb) {
     cb(null, [
         "http://lanyrd.com/topics/nodejs/nodejs.ics",
         "http://lanyrd.com/topics/python/python.ics"
     ]);
+}
+
+function fetchIcalUrlsFromMeetup(cb) {
+    var req = request(MEETUP_URL + MEETUP_KEY, function(error, res, body) {
+        if (!error && res.statusCode == 200) {
+            results = JSON.parse(body);
+
+            urls = [];
+            for(var result in results)
+                urls.push(results[result].link + "events/ical/");
+            cb(null, urls);
+        }
+    });
 }
 
 // first, get a list of ics urls from various places
