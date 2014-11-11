@@ -33,14 +33,27 @@ function fetchIcalUrlsFromLocalFile(cb) {
 }
 
 function fetchIcalUrlsFromMeetup(cb) {
-    var req = request(MEETUP_URL + MEETUP_KEY, function(error, res, body) {
-        if (!error && res.statusCode == 200) {
-            results = JSON.parse(body);
-
-            urls = [];
-            for(var result in results)
-                urls.push(results[result].link + "events/ical/");
-            cb(null, urls);
+    var req = request(MEETUP_URL + MEETUP_KEY, function(err, response, body) {
+        if (err) {
+            console.log("Meetup: Error connecting:", err);
+            return;
+        }
+        else if (response.statusCode != 200) {
+            console.log("Meetup: HTTP error code:", response.statusCode);
+            return;
+        }
+        else {
+            try {
+                results = JSON.parse(body);
+                if(!results.length > 0)
+                    console.log("Meetup: Warning: no results received:");
+                urls = [];
+                for(var result in results)
+                    urls.push(results[result].link + "events/ical/");
+                cb(null, urls);
+            } catch(e) {
+                console.log("Meetup: Error parsing JSON:", e);
+            }
         }
     });
 }
