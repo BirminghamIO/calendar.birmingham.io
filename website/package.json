@@ -1,0 +1,15 @@
+{
+  "name": "website",
+  "version": "1.0.0",
+  "description": "Calendar.Birmingham.io website",
+  "main": "index.js",
+  "dependencies": {
+    "bootstrap": "^3.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Richard Cunningham",
+  "license": "Apache"
+}
