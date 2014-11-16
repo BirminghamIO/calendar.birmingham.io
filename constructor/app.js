@@ -3,7 +3,8 @@ var ical = require("ical"),
     request = require("request"),
     config = require("./config"),
     googleapis = require('googleapis'),
-    crypto = require("crypto");
+    crypto = require("crypto"),
+    moment = require("moment");
 
 var CLIENT_ID = config.CLIENTID;
 var CLIENT_SECRET = config.CLIENTSECRET;
@@ -23,7 +24,7 @@ var MEETUP_URL = "https://api.meetup.com/find/groups?" +
                     "&category=34" + /* Technology */
                     "&lat=52.483056&lon=-1.893611" + /* Birmingham */
                     "&radius=5" + /* radius (in miles) */
-                    "&page=40" + /* results per page */
+                    "&page=4000" + /* results per page */
                     "&key=";
 
 /* FetchIcalUrls functions have to return a list of {source, url} objects.
@@ -63,7 +64,7 @@ function fetchIcalUrlsFromMeetup(cb) {
         else {
             try {
                 results = JSON.parse(body);
-                if(results.length == 0) {
+                if (results.length === 0) {
                     console.log("Meetup: Warning: no results received:");
                 }
                 urls = [];
@@ -145,29 +146,114 @@ function mainJob() {
 
                 // auth to the google calendar
                 jwt.authorize(function(err, tokens) {
-                    if (err) {
-                        console.log(err);
-                        return;
-                    }
+                    if (err) { console.log("Problem authorizing to Google", err); return; }
                     var gcal = googleapis.calendar('v3');
+
+                    /* Get list of events */
+                    gcal.events.list({auth: jwt, calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com'}, function(err, resp) {
+                        if (err) { console.log("Problem getting existing events", err); return; }
+                        // Make a list of existing events keyed by uid, which is the unique key we created
+                        var existing = {};
+                        resp.items.forEach(function(ev) { existing[ev.id] = ev; });
+                        /* Now, go through each of our fetched events and either update them 
+                           if they exist, or create them if not. Note that we do not pass an
+                           err in the update/insert to the callback, because that will terminate
+                           the async.map; instead, we always say that there was no error, and
+                           then if there was we pass it inside the results, so we can check later. */
+                        async.map(results, function(ev, callback) {
+                            if (existing[ev.birminghamIOCalendarID]) {
+                                //console.log("Update event", ev.birminghamIOCalendarID);
+                                gcal.events.patch({
+                                    auth: jwt, 
+                                    calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', 
+                                    eventId: ev.birminghamIOCalendarID,
+                                    resource: {
+                                        start: { dateTime: moment(ev.start).format() },
+                                        end: { dateTime: moment(ev.end).format() },
+                                        description: ev.description || "",
+                                        location: ev.location || "",
+                                        summary: ev.summary
+                                    }
+                                }, function(err, resp) {
+                                    if (err) {
+                                        callback(null, {success: false, err: err, type: "update", event: ev});
+                                        return;
+                                    }
+                                    callback(null, {success: true, type: "update", event: ev});
+                                });
+                            } else {
+                                //console.log("Insert event", ev.birminghamIOCalendarID);
+                                gcal.events.insert({
+                                    auth: jwt, 
+                                    calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', 
+                                    resource: {
+                                        start: { dateTime: moment(ev.start).format() },
+                                        end: { dateTime: moment(ev.end).format() },
+                                        id: ev.birminghamIOCalendarID,
+                                        description: ev.description || "",
+                                        location: ev.location || "",
+                                        summary: ev.summary
+                                    }
+                                }, function(err, resp) {
+                                    if (err) {
+                                        callback(null, {success: false, err: err, type: "insert", event: ev});
+                                        return;
+                                    }
+                                    callback(null, {success: true, type: "insert", event: ev});
+                                });
+                            }
+                        }, function(err, results) {
+                            if (err) { console.log("Update/insert got an error (this shouldn't happen!)", err); return; }
+                            var successes = [], failures = [], inserts = 0, updates = 0;
+                            results.forEach(function(r) {
+                                if (r.success) {
+                                    successes.push(r.event);
+                                    if (r.type == "insert") { inserts += 1; }
+                                    if (r.type == "update") { updates += 1; }
+                                } else {
+                                    failures.push({event: r.event, err: r.err});
+                                }
+                            });
+                            console.log("Successfully dealt with", successes.length, 
+                                "events (" + inserts, "new events,", updates, "existing events)");
+                            console.log("Failed to deal with", failures.length, "events");
+                            if (failures.length > 0) {
+                                console.log("== Failures ==");
+                                failures.forEach(function(f) {
+                                    console.log("Event", f.event.summary, 
+                                        "(" + f.event.uid + ", " + f.event.birminghamIOCalendarID + ")", 
+                                        JSON.stringify(f.err));
+                                });
+                            }
+                        });
+                    });
+
+
                     // temporarily create one event, just to see if inserting works. Remove this once we've made inserting work.
-                    gcal.events.insert({
+                    /*gcal.events.insert({
                         auth: jwt, 
-                        calendarId: 'limeblast.co.uk_343bi2q6qgpt5rc95nrjemq34s@group.calendar.google.com', 
+                        calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', 
                         resource: {
-                            start: { dateTime: "2014-11-16T02:00:01+00:00"},
-                            end: { dateTime: "2014-11-16T03:00:01+00:00"},
-                            id: "siltest00001",
-                            description: "description",
-                            location: "location",
-                            summary: "hack on calendar app"
+                            start: { dateTime: "2014-11-16T14:00:01+00:00"},
+                            end: { dateTime: "2014-11-16T15:00:01+00:00"},
+                            id: "siltest00002",
+                            description: "adescription",
+                            location: "alocation",
+                            summary: "ahack on calendar app"
                         }
                     }, function(err, resp) {
                         console.log("inserted, now delete.", err, resp);
-                    });
-                    gcal.events.list({auth: jwt, calendarId: 'limeblast.co.uk_343bi2q6qgpt5rc95nrjemq34s@group.calendar.google.com'}, function(err, resp) {
-                        console.log("got response", err, resp);
-                    });
+                    });*/
+                    // create a new calendar owned by the service account
+                    //gcal.calendars.insert({auth:jwt, resource: { summary: "Calendar for Birmingham.IO"}}, function(err, resp) {
+                    //    console.log("got response", err, resp);
+                    //});
+                    // delegate access to new calendar
+                    //gcal.acl.insert({auth:jwt,  calendarId: "movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com", resource: {
+                    //    role: "owner", scope: {type: "user", value: "info@birmingham.io"}
+                    //}}, function(err, resp) {
+                    //    console.log("got response", err, resp);
+                    //})
                 });
             });
         });

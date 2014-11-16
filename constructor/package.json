@@ -16,10 +16,11 @@
     "url": "https://github.com/BirminghamIO/calendar/issues"
   },
   "dependencies": {
-    "ical": "~0.3.1",
     "async": "~0.9.0",
-    "request": "~2.47.0",
     "googleapis": "~1.0.20",
-    "readline": "0.0.5"
+    "ical": "~0.3.1",
+    "moment": "^2.8.3",
+    "readline": "0.0.5",
+    "request": "~2.47.0"
   }
 }
