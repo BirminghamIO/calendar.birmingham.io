@@ -111,7 +111,7 @@ function fetchIcalUrlsFromMeetup(cb) {
 }
 
 // first, get a list of ics urls from various places
-function mainJob() {
+exports.mainJob = function mainJob() {
     async.parallel([
         fetchIcalUrlsFromLocalFile,
         fetchIcalUrlsFromMeetup
