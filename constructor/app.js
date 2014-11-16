@@ -4,7 +4,21 @@ var ical = require("ical"),
     config = require("./config"),
     googleapis = require('googleapis'),
     crypto = require("crypto"),
-    moment = require("moment");
+    moment = require("moment"),
+    fs = require("fs");
+
+/* Override the ical library's RRULE parser because Google Calendar doesn't
+   want parsed rrules, it wants an unparsed string, so we stash the unparsed
+   string on the object so we can get at it later. */
+var existing_rrule_handler = ical.objectHandlers.RRULE;
+ical.objectHandlers.RRULE = function(val, params, curr, stack, line) {
+    if (curr.unparsed_rrules) {
+        curr.unparsed_rrules.push(line);
+    } else {
+        curr.unparsed_rrules = [line];
+    }
+    return existing_rrule_handler(val, params, curr, stack, line);
+};
 
 var CLIENT_ID = config.CLIENTID;
 var CLIENT_SECRET = config.CLIENTSECRET;
@@ -45,10 +59,27 @@ var MEETUP_URL = "https://api.meetup.com/find/groups?" +
 */
 
 function fetchIcalUrlsFromLocalFile(cb) {
-    cb(null, [
-        //"http://lanyrd.com/topics/nodejs/nodejs.ics",
-        //"http://lanyrd.com/topics/python/python.ics"
-    ]);
+    var fn = "explicitIcalUrls.json";
+    fs.readFile(fn, function(err, data) {
+        if (err) {
+            console.log("Failed to read local file of icals", fn);
+            cb(null, []);
+            return;
+        }
+        var j;
+        try {
+            j = JSON.parse(data);
+        } catch(e) {
+            console.log("Failed to read local file of icals", fn, e);
+            cb(null, []);
+            return;
+        }
+        var urls = [];
+        j.forEach(function(item) {
+            urls.push({source: item.source, url: item.url});
+        });
+        cb(null, urls);
+    });
 }
 
 function fetchIcalUrlsFromMeetup(cb) {
@@ -174,20 +205,29 @@ function mainJob() {
                            the async.map; instead, we always say that there was no error, and
                            then if there was we pass it inside the results, so we can check later. */
                         async.map(results, function(ev, callback) {
+                            var event_resource = {
+                                start: { dateTime: moment(ev.start).format() },
+                                end: { dateTime: moment(ev.end).format() },
+                                description: ev.description || "",
+                                location: ev.location || "",
+                                summary: ev.summary,
+                                status: "confirmed"
+                            };
+                            if (ev.unparsed_rrules) {
+                                event_resource.recurrence = ev.unparsed_rrules;
+                                /* Recurring events require an explicit start and end timezone.
+                                   Timezones are hard. Fortunately, we are in England and so don't care.
+                                   Send her victorious. */
+                                event_resource.start.timeZone = "Europe/London";
+                                event_resource.end.timeZone = "Europe/London";
+                            }
                             if (existing[ev.birminghamIOCalendarID]) {
                                 //console.log("Update event", ev.birminghamIOCalendarID);
                                 gcal.events.patch({
                                     auth: jwt, 
                                     calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', 
                                     eventId: ev.birminghamIOCalendarID,
-                                    resource: {
-                                        start: { dateTime: moment(ev.start).format() },
-                                        end: { dateTime: moment(ev.end).format() },
-                                        description: ev.description || "",
-                                        location: ev.location || "",
-                                        summary: ev.summary,
-                                        status: "confirmed"
-                                    }
+                                    resource: event_resource
                                 }, function(err, resp) {
                                     if (err) {
                                         callback(null, {success: false, err: err, type: "update", event: ev});
@@ -196,19 +236,12 @@ function mainJob() {
                                     callback(null, {success: true, type: "update", event: ev});
                                 });
                             } else {
-                                //console.log("Insert event", ev.birminghamIOCalendarID);
+                                var event_resource_clone = JSON.parse(JSON.stringify(event_resource));
+                                event_resource_clone.id = ev.birminghamIOCalendarID;
                                 gcal.events.insert({
                                     auth: jwt, 
                                     calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', 
-                                    resource: {
-                                        start: { dateTime: moment(ev.start).format() },
-                                        end: { dateTime: moment(ev.end).format() },
-                                        id: ev.birminghamIOCalendarID,
-                                        description: ev.description || "",
-                                        location: ev.location || "",
-                                        summary: ev.summary,
-                                        status: "confirmed"
-                                    }
+                                    resource: event_resource_clone
                                 }, function(err, resp) {
                                     if (err) {
                                         callback(null, {success: false, err: err, type: "insert", event: ev});
