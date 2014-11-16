@@ -1,7 +1,37 @@
 [
     {
-        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_eta5m0cipet4er0i0rnhj5em48%40group.calendar.google.com/private-62f2a60122eff459e3a90751aa206641/basic.ics",
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_eta5m0cipet4er0i0rnhj5em48%40group.calendar.google.com/public/basic.ics",
         "source": "badego",
         "notes": "Manually created calendar for Badego in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_eta5m0cipet4er0i0rnhj5em48%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_39iffiiscjisnhkeuua7uotlc8%40group.calendar.google.com/public/basic.ics",
+        "source": "birminghamlug",
+        "notes": "Manually created calendar for Birmingham LUG in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_39iffiiscjisnhkeuua7uotlc8%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_oipjdu1b8e5n9snq4gcq569p40%40group.calendar.google.com/public/basic.ics",
+        "source": "birminghamsql",
+        "notes": "Manually created calendar for Birmingham SQL Server User Group in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_oipjdu1b8e5n9snq4gcq569p40%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_j54gsl84m9d4150pglmfj65mj8%40group.calendar.google.com/public/basic.ics",
+        "source": "creativenetworks",
+        "notes": "Manually created calendar for Creative Networks in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_j54gsl84m9d4150pglmfj65mj8%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "http://www.innovationbham.com/events/?ical=1&tribe_display=list",
+        "source": "innovationbham",
+        "notes": "Innovation Birmingham, always says invalid date on one entry at this point"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_dtbevmpf6od43s3g43onpp7j6s%40group.calendar.google.com/public/basic.ics",
+        "source": "ucbirminghamusergroup",
+        "notes": "Manually created calendar for UC Birmingham User Group in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_dtbevmpf6od43s3g43onpp7j6s%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/bumi95se5qmk6rvg4k770d8vvk%40group.calendar.google.com/public/basic.ics",
+        "source": "perlmongers",
+        "notes": "Perl Mongers, feed through Google Calendar because their feed doesn't have UIDs"
     }
 ]
