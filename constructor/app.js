@@ -129,6 +129,12 @@ function mainJob() {
                     console.log("Failed to fetch URL", icsurlobj.url, err);
                     body = null;
                 }
+                // sanitise source name. Shouldn't need this, because people are
+                // supposed to read the above comment, but nobody ever does. So,
+                // a source name must match [a-v0-9] (no punctuation) and should 
+                // be trimmed to about 13 characters, so let's make it 10 to be
+                // on the safe side.
+                source = source.toLowerCase().replace(/[^a-v0-9]/g, '').substr(0,10);
                 cb(null, {source: icsurlobj.source, body: body});
             });
         }, function(err, results) {
