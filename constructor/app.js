@@ -246,33 +246,6 @@ function mainJob() {
                             });
                         });
                     });
-
-
-                    // temporarily create one event, just to see if inserting works. Remove this once we've made inserting work.
-                    /*gcal.events.insert({
-                        auth: jwt, 
-                        calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', 
-                        resource: {
-                            start: { dateTime: "2014-11-16T14:00:01+00:00"},
-                            end: { dateTime: "2014-11-16T15:00:01+00:00"},
-                            id: "siltest00002",
-                            description: "adescription",
-                            location: "alocation",
-                            summary: "ahack on calendar app"
-                        }
-                    }, function(err, resp) {
-                        console.log("inserted, now delete.", err, resp);
-                    });*/
-                    // create a new calendar owned by the service account
-                    //gcal.calendars.insert({auth:jwt, resource: { summary: "Calendar for Birmingham.IO"}}, function(err, resp) {
-                    //    console.log("got response", err, resp);
-                    //});
-                    // delegate access to new calendar
-                    //gcal.acl.insert({auth:jwt,  calendarId: "movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com", resource: {
-                    //    role: "owner", scope: {type: "user", value: "info@birmingham.io"}
-                    //}}, function(err, resp) {
-                    //    console.log("got response", err, resp);
-                    //})
                 });
             });
         });
