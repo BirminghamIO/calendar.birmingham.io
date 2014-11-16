@@ -294,5 +294,5 @@ exports.mainJob = function mainJob() {
 }
 
 if (require.main === module) {
-    mainJob();
+    exports.mainJob();
 }
