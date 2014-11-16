@@ -150,11 +150,24 @@ function mainJob() {
                     var gcal = googleapis.calendar('v3');
 
                     /* Get list of events */
-                    gcal.events.list({auth: jwt, calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com'}, function(err, resp) {
+                    gcal.events.list({auth: jwt, calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', showDeleted: true}, function(err, resp) {
                         if (err) { console.log("Problem getting existing events", err); return; }
                         // Make a list of existing events keyed by uid, which is the unique key we created
                         var existing = {};
                         resp.items.forEach(function(ev) { existing[ev.id] = ev; });
+                        
+                        // Make a list of events which are in the google calendar and are *not* upstream, and flag them
+                        var deletedUpstream = [];
+                        var presentUpstream = {};
+                        results.forEach(function(upstr) {
+                            presentUpstream[upstr.birminghamIOCalendarID] = "yes";
+                        });
+                        for (var bioid in existing) {
+                            if (!presentUpstream[bioid]) {
+                                deletedUpstream.push(existing[bioid]);
+                            }
+                        }
+
                         /* Now, go through each of our fetched events and either update them 
                            if they exist, or create them if not. Note that we do not pass an
                            err in the update/insert to the callback, because that will terminate
@@ -172,7 +185,8 @@ function mainJob() {
                                         end: { dateTime: moment(ev.end).format() },
                                         description: ev.description || "",
                                         location: ev.location || "",
-                                        summary: ev.summary
+                                        summary: ev.summary,
+                                        status: "confirmed"
                                     }
                                 }, function(err, resp) {
                                     if (err) {
@@ -192,7 +206,8 @@ function mainJob() {
                                         id: ev.birminghamIOCalendarID,
                                         description: ev.description || "",
                                         location: ev.location || "",
-                                        summary: ev.summary
+                                        summary: ev.summary,
+                                        status: "confirmed"
                                     }
                                 }, function(err, resp) {
                                     if (err) {
@@ -225,6 +240,10 @@ function mainJob() {
                                         JSON.stringify(f.err));
                                 });
                             }
+                            console.log("Events present in the Google calendar but not present in sources:", deletedUpstream.length);
+                            deletedUpstream.forEach(function(duev) {
+                                console.log(duev.summary + " (" + duev.id + ")", duev.start.dateTime);
+                            });
                         });
                     });
 
