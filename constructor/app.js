@@ -131,10 +131,8 @@ exports.mainJob = function mainJob() {
                 }
                 // sanitise source name. Shouldn't need this, because people are
                 // supposed to read the above comment, but nobody ever does. So,
-                // a source name must match [a-v0-9] (no punctuation) and should 
-                // be trimmed to about 13 characters, so let's make it 10 to be
-                // on the safe side.
-                var source = icsurlobj.source.toLowerCase().replace(/[^a-v0-9]/g, '').substr(0,10);
+                // a source name must match [a-v0-9] (no punctuation)
+                var source = icsurlobj.source.toLowerCase().replace(/[^a-v0-9]/g, '').substr(0,40);
                 cb(null, {source: source, body: body});
             });
         }, function(err, results) {
