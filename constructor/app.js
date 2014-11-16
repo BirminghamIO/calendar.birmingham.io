@@ -166,9 +166,13 @@ exports.mainJob = function mainJob() {
                                globally-unique (because of the "bio"), and suitable
                                for use as a gcal ID. */
                             var shasum = crypto.createHash('sha1');
-                            shasum.update(ev.uid);
-                            ev.birminghamIOCalendarID = "bio" + icsbodyobj.source + shasum.digest('hex');
-                            events.push(ev);
+                            try {
+                                shasum.update(ev.uid);
+                                ev.birminghamIOCalendarID = "bio" + icsbodyobj.source + shasum.digest('hex');
+                                events.push(ev);
+                            } catch(e) {
+                                console.log("Missing ev.uid", e, ev);
+                            }
                         }
                     }
                 }
