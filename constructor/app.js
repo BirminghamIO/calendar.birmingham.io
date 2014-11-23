@@ -281,7 +281,7 @@ exports.mainJob = function mainJob() {
                                         JSON.stringify(f.err));
                                 });
                             }
-                            console.log("Events present in the Google calendar but not present in sources:", deletedUpstream.length);
+                            console.log("== Events present in the Google calendar but not present in sources: %d ==", deletedUpstream.length);
                             deletedUpstream.forEach(function(duev) {
                                 console.log(duev.summary + " (" + duev.id + ")", duev.start.dateTime);
                             });
