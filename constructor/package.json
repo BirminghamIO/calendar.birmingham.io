@@ -21,7 +21,8 @@
     "ical": "~0.3.1",
     "moment": "^2.8.3",
     "readline": "0.0.5",
-    "request": "~2.47.0"
+    "request": "~2.47.0",
+    "time": "^0.11.0"
   },
   "devDependencies": {
     "mitm": "^1.0.0",

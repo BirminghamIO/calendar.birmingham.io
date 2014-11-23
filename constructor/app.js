@@ -5,7 +5,8 @@ var ical = require("ical"),
     googleapis = require('googleapis'),
     crypto = require("crypto"),
     moment = require("moment"),
-    fs = require("fs");
+    fs = require("fs"),
+    time = require("time");
 
 /* Override the ical library's RRULE parser because Google Calendar doesn't
    want parsed rrules, it wants an unparsed string, so we stash the unparsed
@@ -40,6 +41,9 @@ var MEETUP_URL = "https://api.meetup.com/find/groups?" +
                     "&radius=5" + /* radius (in miles) */
                     "&page=4000" + /* results per page */
                     "&key=";
+
+var tz = new time.Date();
+var TIMEZONE = tz.getTimezone();
 
 /* FetchIcalUrls functions have to return a list of {source, url} objects.
    A source must be a short word which identifies the source somehow
@@ -226,8 +230,8 @@ exports.mainJob = function mainJob() {
                                 /* Recurring events require an explicit start and end timezone.
                                    Timezones are hard. Fortunately, we are in England and so don't care.
                                    Send her victorious. */
-                                event_resource.start.timeZone = "Europe/London";
-                                event_resource.end.timeZone = "Europe/London";
+                                event_resource.start.timeZone = TIMEZONE;
+                                event_resource.end.timeZone = TIMEZONE;
                             }
                             if (existing[ev.birminghamIOCalendarID]) {
                                 //console.log("Update event", ev.birminghamIOCalendarID);
