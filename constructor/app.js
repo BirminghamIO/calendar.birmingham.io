@@ -21,9 +21,6 @@ ical.objectHandlers.RRULE = function(val, params, curr, stack, line) {
     return existing_rrule_handler(val, params, curr, stack, line);
 };
 
-var CLIENT_ID = config.CLIENTID;
-var CLIENT_SECRET = config.CLIENTSECRET;
- 
 var SERVICE_ACCOUNT_EMAIL = '721976846481-1s5altpg8afuc4opnlr13nua86hg0ul9@developer.gserviceaccount.com';
 var SERVICE_ACCOUNT_KEY_FILE = './key.pem';
 var jwt = new googleapis.auth.JWT(
