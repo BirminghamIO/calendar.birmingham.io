@@ -21,14 +21,17 @@ ical.objectHandlers.RRULE = function(val, params, curr, stack, line) {
     return existing_rrule_handler(val, params, curr, stack, line);
 };
 
+/* Google */
 var SERVICE_ACCOUNT_EMAIL = '721976846481-1s5altpg8afuc4opnlr13nua86hg0ul9@developer.gserviceaccount.com';
 var SERVICE_ACCOUNT_KEY_FILE = './key.pem';
+var GOOGLE_CALENDAR_ID = 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com';
 var jwt = new googleapis.auth.JWT(
         SERVICE_ACCOUNT_EMAIL,
         SERVICE_ACCOUNT_KEY_FILE,
         null,
         ['https://www.googleapis.com/auth/calendar']);
 
+/* Meetup */
 var MEETUP_KEY = config.MEETUPKEY;
 var MEETUP_URL = "https://api.meetup.com/find/groups?" +
                     "&sign=true" +
@@ -201,7 +204,7 @@ exports.mainJob = function mainJob() {
                     var gcal = googleapis.calendar('v3');
 
                     /* Get list of events */
-                    gcal.events.list({auth: jwt, calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', showDeleted: true}, function(err, resp) {
+                    gcal.events.list({auth: jwt, calendarId: GOOGLE_CALENDAR_ID, showDeleted: true}, function(err, resp) {
                         if (err) { console.log("Problem getting existing events", err); return; }
                         // Make a list of existing events keyed by uid, which is the unique key we created
                         var existing = {};
@@ -245,7 +248,7 @@ exports.mainJob = function mainJob() {
                                 //console.log("Update event", ev.birminghamIOCalendarID);
                                 gcal.events.patch({
                                     auth: jwt, 
-                                    calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', 
+                                    calendarId: GOOGLE_CALENDAR_ID,
                                     eventId: ev.birminghamIOCalendarID,
                                     resource: event_resource
                                 }, function(err, resp) {
@@ -260,7 +263,7 @@ exports.mainJob = function mainJob() {
                                 event_resource_clone.id = ev.birminghamIOCalendarID;
                                 gcal.events.insert({
                                     auth: jwt, 
-                                    calendarId: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', 
+                                    calendarId: GOOGLE_CALENDAR_ID,
                                     resource: event_resource_clone
                                 }, function(err, resp) {
                                     if (err) {
