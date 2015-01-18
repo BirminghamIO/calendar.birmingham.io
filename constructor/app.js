@@ -6,7 +6,8 @@ var ical = require("ical"),
     crypto = require("crypto"),
     moment = require("moment"),
     fs = require("fs"),
-    time = require("time");
+    time = require("time"),
+    Handlebars = require("handlebars");
 
 /* Override the ical library's RRULE parser because Google Calendar doesn't
    want parsed rrules, it wants an unparsed string, so we stash the unparsed
@@ -124,6 +125,111 @@ function fetchIcalUrlsFromMeetup(cb) {
         return;
     }
 }
+
+var renderWebsite = function(events, done) {
+    var now = moment();
+    var ne = [];
+    events.forEach(function(ev) {
+        ev.start_parsed = moment(ev.start.dateTime);
+        ev.end_parsed = moment(ev.end.dateTime);
+        ev.date_as_str = ev.start_parsed.format("ha") + "&ndash;" + ev.end_parsed.format("ha") + " " +
+            ev.start_parsed.format("ddd Do MMM");
+        ev.url_escaped_location = encodeURIComponent(ev.location);
+        if (ev.start_parsed.diff(now, "hours") < -1) {
+            // discard
+        } else {
+            ne.push(ev);
+        }
+    });
+    events = ne;
+    events.sort(function(a,b) {
+        if (b.start.dateTime < a.start.dateTime) { return 1; }
+        if (b.start.dateTime > a.start.dateTime) { return -1; }
+        return 0;
+    });
+
+    var next_midnight = moment().endOf("day"), next_week = moment().add(7, 'days');
+    if (next_midnight.diff(now, "hours") > -3) {
+        // the next midnight is less than three hours away (it's after 9pm), so get the one after that
+        next_midnight = next_midnight.add(1, "days");
+    }
+
+    fs.readFile("./templates/index.handlebars", function(err, tplsrc) {
+        if (err) { return done(err); }
+        Handlebars.registerHelper('breaklines_linkify', function(text) {
+            text = Handlebars.Utils.escapeExpression(text);
+            text = text.replace(/(\r\n|\n|\r)/gm, '<br>');
+            text = text.replace(/(https?:\/\/\S+)/gi, function (s) {
+                return '<a href="' + s + '">' + s + '</a>';
+            });
+            text = text.replace(/(^|)@(\w+)/gi, function (s) {
+                return '<a href="http://twitter.com/' + s + '">' + s + '</a>';
+            });
+            text = text.replace(/(^|)#(\w+)/gi, function (s) {
+                return '<a href="http://search.twitter.com/search?q=' + s.replace(/#/,'%23') + '">' + s + '</a>';
+            });
+            return new Handlebars.SafeString(text);
+        });
+        var tpl = Handlebars.compile(tplsrc.toString());
+        var idxhtml = tpl({
+            upcoming: events.filter(function(ev) { return ev.start_parsed.diff(next_midnight) < 0; }),
+            thisweek: events.filter(function(ev) { 
+                return ev.start_parsed.diff(next_midnight) >= 0 && ev.start_parsed.diff(next_week) < 0; 
+            }),
+            remaining: events.filter(function(ev) { return ev.start_parsed.diff(next_week) >= 0; }).length
+        });
+        fs.writeFile("../website/out.html", idxhtml, function(err) {
+            if (err) { return done(err); }
+            done();
+        });
+    });
+
+};
+
+var getEventsFromGCal = function(CACHEFILE, done) {
+    jwt.authorize(function(err, tokens) {
+        if (err) { return done(err); }
+        var gcal = googleapis.calendar('v3');
+        /* Get list of events */
+        gcal.events.list({auth: jwt, calendarId: GOOGLE_CALENDAR_ID, showDeleted: true}, function(err, resp) {
+            if (err) { return done(err); }
+            var events = resp.items;
+            // save to cache
+            fs.writeFile(CACHEFILE, JSON.stringify(events), function(err) {
+                if (err) { console.warn("Couldn't write cache file", err); }
+                renderWebsite(events, done);
+            });
+        });
+    });
+};
+
+exports.createWebsite = function(done) {
+    // if there's a cache file locally and it's less than 50 minutes old, use it
+    var CACHEFILE = "./events.json.cache";
+    fs.stat(CACHEFILE, function(err, stats) {
+        if (!err && ((new Date()).getTime() - stats.mtime.getTime()) < 3000000) {
+            fs.readFile(CACHEFILE, function(err, data) {
+                if (err) {
+                    console.warn("Tried to read cachefile", CACHEFILE, "and couldn't because", err);
+                    getEventsFromGCal(CACHEFILE, done);
+                    return;
+                }
+                var events;
+                try {
+                    events = JSON.parse(data);
+                } catch(e) {
+                    console.warn("Cachefile was not valid JSON:", e);
+                    getEventsFromGCal(CACHEFILE, done);
+                    return;
+                }
+                console.log("Read events from cache");
+                renderWebsite(events, done);
+            });
+        } else {
+            getEventsFromGCal(CACHEFILE, done);
+        }
+    });
+};
 
 // first, get a list of ics urls from various places
 exports.mainJob = function mainJob() {

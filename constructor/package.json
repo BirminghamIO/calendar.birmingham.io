@@ -18,6 +18,7 @@
   "dependencies": {
     "async": "~0.9.0",
     "googleapis": "~1.0.20",
+    "handlebars": "^2.0.0",
     "ical": "~0.3.1",
     "moment": "^2.8.3",
     "readline": "0.0.5",
