@@ -33,5 +33,10 @@
         "url": "https://www.google.com/calendar/ical/bumi95se5qmk6rvg4k770d8vvk%40group.calendar.google.com/public/basic.ics",
         "source": "perlmongers",
         "notes": "Perl Mongers, feed through Google Calendar because their feed doesn't have UIDs"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/3lkc4oi2hgjmtu9e21d490jiq8%40group.calendar.google.com/public/basic.ics",
+        "source": "midlandsindies",
+        "notes": "Midlands Indies game dev group, from their own Google Calendar at https://www.google.com/calendar/embed?src=3lkc4oi2hgjmtu9e21d490jiq8%40group.calendar.google.com&ctz=Europe/London"
     }
 ]
