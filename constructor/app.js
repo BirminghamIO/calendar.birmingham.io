@@ -333,7 +333,7 @@ exports.mainJob = function mainJob() {
                            err in the update/insert to the callback, because that will terminate
                            the async.map; instead, we always say that there was no error, and
                            then if there was we pass it inside the results, so we can check later. */
-                        async.map(results, function(ev, callback) {
+                        async.mapSeries(results, function(ev, callback) {
                             var event_resource = {
                                 start: { dateTime: moment(ev.start).format() },
                                 end: { dateTime: moment(ev.end).format() },
