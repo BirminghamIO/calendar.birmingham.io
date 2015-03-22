@@ -137,6 +137,8 @@ var renderWebsite = function(events, done) {
         ev.url_escaped_location = encodeURIComponent(ev.location);
         if (ev.start_parsed.diff(now, "hours") < -1) {
             // discard
+        } else if (ev.status == "cancelled") {
+            // discard
         } else {
             ne.push(ev);
         }
@@ -178,6 +180,12 @@ var renderWebsite = function(events, done) {
             }),
             remaining: events.filter(function(ev) { return ev.start_parsed.diff(next_week) >= 0; }).length
         });
+        var tw = [];
+        events.filter(function(ev) { 
+                return ev.start_parsed.diff(next_midnight) >= 0 && ev.start_parsed.diff(next_week) < 0; 
+            }).forEach(function(ev) {
+                tw.push(ev.summary + " | " + ev.date_as_str);
+            });
         fs.writeFile("../website/out.html", idxhtml, function(err) {
             if (err) { return done(err); }
             done();
@@ -190,11 +198,30 @@ var getEventsFromGCal = function(CACHEFILE, done) {
     jwt.authorize(function(err, tokens) {
         if (err) { return done(err); }
         var gcal = googleapis.calendar('v3');
-        /* Get list of events */
-        gcal.events.list({auth: jwt, calendarId: GOOGLE_CALENDAR_ID, showDeleted: true}, function(err, resp) {
-            if (err) { return done(err); }
-            var events = resp.items;
-            // save to cache
+        /* Get list of events, which may be in multiple pages */
+        var events = [];
+        var week_ago = moment().subtract(7, 'days');
+        var fortnight_away = moment().add(14, 'days');
+
+        function getListOfEvents(cb, nextPageToken) {
+            var params = {auth: jwt, calendarId: GOOGLE_CALENDAR_ID, showDeleted: true, 
+                singleEvents: true, 
+                timeMin: week_ago.format(),
+                timeMax: fortnight_away.format()
+            };
+            if (nextPageToken) { params.pageToken = nextPageToken; }
+            gcal.events.list(params, function(err, resp) {
+                if (err) { return done(err); }
+                events = events.concat(resp.items);
+                if (resp.nextPageToken) {
+                    getListOfEvents(cb, resp.nextPageToken);
+                } else {
+                    cb(events);
+                }
+            });
+        }
+
+        getListOfEvents(function(events) {
             fs.writeFile(CACHEFILE, JSON.stringify(events), function(err) {
                 if (err) { console.warn("Couldn't write cache file", err); }
                 renderWebsite(events, done);
