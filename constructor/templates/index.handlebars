@@ -20,73 +20,52 @@
     <![endif]-->
   </head>
   <body>
-    <div class='navbar-wrapper'>
-        <div class='container'>
-            <nav class="navbar navbar-default" role="navigation">
-              <div class="container">
-                <div class="navbar-header">
-                  <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                  </button>
-                  <a class="navbar-brand" href="#">Birmingham.IO Tech Calendar</a>
-                </div>
-                <div id="navbar" class="collapse navbar-collapse">
-                  <ul class="nav navbar-nav">
-                    <li class="active"><a href="#">Home</a></li>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#contact">Contact</a></li>
-                  </ul>
-                </div><!--/.nav-collapse -->
-              </div>
-            </nav>
-        </div><!--/.container -->
-    </div><!--/.navbar-wrapper -->
+    <div id='calendar'>
+        <h1>Birmingham.IO</h1>
 
-    <div class='container' id='calendar'>
-        <h1>What's going on in tech in Birmingham</h1>
+        <div id='about'>
+            <h2>About</h2>
+            <p>This is a calendar of all of the technology related meetups happening in 
+            Birmingham. You can <a href="https://www.google.com/calendar/embed?showTitle=0&mode=AGENDA&ctz=Europe/London&src=movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com&ctz=Europe/London">subscribe to the full Google calendar</a>.</p>
+        </div>
 
-        <ul id="eventlist">
-        {{#each upcoming}}
-            <li class="upcoming">
-                <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
-                <time datetime="{{this.start.dateTime}}">{{{this.date_as_str}}}</time>
-                <span class="desc">{{breaklines_linkify description}}</span>
-                <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
-            </li>
-        {{/each}}
-        {{#each thisweek}}
-            <li class="thisweek"><a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
-                <time datetime="{{this.start.dateTime}}">{{{this.date_as_str}}}</time>
-                <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
-            </li>
-        {{/each}}
-            <li class="remaining">For more on these and {{remaining}} more events, see <a href="https://www.google.com/calendar/embed?showTitle=0&mode=AGENDA&ctz=Europe/London&src=movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com&ctz=Europe/London">the full Google calendar</a>.</li>
-        </ul>
+        <div id='contact'>
+            <h2>How do I add my event to the Birmingham.IO calendar?</h2>
+            <p>The easiest way to become part of the Birmingham.IO calendar is to put your event on <a href="http://meetup.com">Meetup</a>. Be sure to tag it with <strong>technology</strong> and then it will be
+            automatically included in the calendar with no other work required.</p>
+            <p>If your event isn't on meetup, you can post a message in the 
+            <a href='https://talk.birmingham.io/t/calendar-of-events-project-idea/'>Birmingham.IO discussion thread</a>
+            and one of the calendar maintainers can add it for you, or if you're technical you can send a 
+            <a href='https://github.com/BirminghamIO/calendar.birmingham.io/blob/master/constructor/explicitIcalUrls.json'>Github pull request</a> to the calendar's list.</p> 
+        </div>
+
     </div>
 
-    <div class='container' id='contact'>
-        <h2>How do I add my event to the Birmingham.IO calendar?</h2>
-        <p class="well">The easiest way to become part of the Birmingham.IO calendar is to put your event on <a href="http://meetup.com">Meetup</a>. Be sure to tag it with <strong>technology</strong> and then it will be
-        automatically included in the calendar with no other work required.</p>
-        <p>If your event isn't on meetup, you can post a message in the 
-        <a href='https://talk.birmingham.io/t/calendar-of-events-project-idea/'>Birmingham.IO discussion thread</a>
-        and one of the calendar maintainers can add it for you, or if you're technical you can send a 
-        <a href='https://github.com/BirminghamIO/calendar.birmingham.io/blob/master/constructor/explicitIcalUrls.json'>Github pull request</a> to the calendar's list.</p> 
-    </div>
-
-    <div class='container' id='about'>
-        <h2>About</h2>
-        <p>This is a calendar of all of the technology related meetups happening in Birmingham. The calendar
-        was created and is maintained by the <a href='http://birmingham.io'>Birmingham.IO</a> community.</p>
-    </div>
+    <ul id="eventlist">
+    {{#each upcoming}}
+        <li class="upcoming">
+            <strong class="daydate"><span class="day">{{datepart 'D'}}</span>
+                <span class="month">{{datepart 'MMM'}}</span></strong>
+            <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
+            <time datetime="{{this.start.dateTime}}">{{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
+            <span class="desc">{{breaklines_linkify description}}</span>
+            <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
+        </li>
+    {{/each}}
+    {{#each thisweek}}
+        <li class="thisweek">
+            <strong class="daydate"><span class="day">{{datepart 'D'}}</span>
+                <span class="month">{{datepart 'MMM'}}</span></strong>
+            <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
+            <time datetime="{{this.start.dateTime}}">{{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
+            <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
+        </li>
+    {{/each}}
+    </ul>
 
     <footer>
-        <div class='container'>
-            <p>Birmingham Technology Events Calendar &middot; <a href='http://birmingham.io'>Birmingham.IO</a></p>
-        <div>
+    Done by the <a href="https://github.com/BirminghamIO/calendar.birmingham.io">Birmingham calendar team</a>. Background 
+    image from <a href="https://www.flickr.com/photos/hisgett/472419591">hisgett</a>.
     </footer>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->

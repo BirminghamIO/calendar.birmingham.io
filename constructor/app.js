@@ -134,6 +134,7 @@ var renderWebsite = function(events, done) {
         ev.end_parsed = moment(ev.end.dateTime);
         ev.date_as_str = ev.start_parsed.format("ha") + "&ndash;" + ev.end_parsed.format("ha") + " " +
             ev.start_parsed.format("ddd Do MMM");
+        ev.dateparts = {};
         ev.url_escaped_location = encodeURIComponent(ev.location);
         if (ev.start_parsed.diff(now, "hours") < -1) {
             // discard
@@ -167,10 +168,16 @@ var renderWebsite = function(events, done) {
             text = text.replace(/(^|)@(\w+)/gi, function (s) {
                 return '<a href="http://twitter.com/' + s + '">' + s + '</a>';
             });
-            text = text.replace(/(^|)#(\w+)/gi, function (s) {
-                return '<a href="http://search.twitter.com/search?q=' + s.replace(/#/,'%23') + '">' + s + '</a>';
-            });
+            //text = text.replace(/(^|)#(\w+)/gi, function (s) {
+            //    return '<a href="http://search.twitter.com/search?q=' + s.replace(/#/,'%23') + '">' + s + '</a>';
+            //});
             return new Handlebars.SafeString(text);
+        });
+        Handlebars.registerHelper('datepart', function(fmt) {
+            return this.start_parsed.format(fmt);
+        });
+        Handlebars.registerHelper('enddatepart', function(fmt) {
+            return this.end_parsed.format(fmt);
         });
         var tpl = Handlebars.compile(tplsrc.toString());
         var idxhtml = tpl({

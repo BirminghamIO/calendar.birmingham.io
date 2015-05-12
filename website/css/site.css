@@ -1,157 +1,98 @@
+
+body {
+    background-image: url(../img/bgtall.jpg);
+    background-size: cover;
+}
+
+a {
+    color: #5e8eb2;
+}
+
+h2 {
+    font-size: 24px;
+}
+
 .navbar-wrapper { 
     margin-top: 20px;
+    display: none;
 }
 footer { 
-    background-color: #ccc;
     margin-top: 20px;
-    padding: 20px 10px;
+    padding: 20px 3px 3px 20px;
+    text-align: right;
+    font-size: 10px;
+}
+footer, footer a { color: #999; }
+
+#calendar, #eventlist li {
+    background: rgba(255, 255, 255, 0.9);
+    max-width: 600px;
+    margin-left: 100px;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 50px;
 }
 
-/* Navbar: http://twbscolor.smarchal.com/scss?bd=338bb2&bh=256b92&cd=e5edf2&ch=ffffff */
-.navbar-default {
-    background-color: #338bb2;
-    border-color: #256b92;
+#calendar h1 {
+    margin-left: -40px;
+    margin-right: -30px;
+    background: #0b3b65 url(../img/header.png) center left no-repeat;
+    background-size: contain;
+    color: white;
+    font-family: monospace;
+    position: relative;
+    height: 80px;
+    line-height: 80px;
+    padding-left: 40px;
+    text-indent: -1000em;
 }
-.navbar-default .navbar-brand {
-    color: #e5edf2;
-}
-.navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
-    color: #ffffff;
-}
-.navbar-default .navbar-text {
-    color: #e5edf2;
-}
-.navbar-default .navbar-nav > li > a {
-    color: #e5edf2;
-}
-.navbar-default .navbar-nav > li > a:hover, .navbar-default .navbar-nav > li > a:focus {
-    color: #ffffff;
-}
-.navbar-default .navbar-nav > .active > a, .navbar-default .navbar-nav > .active > a:hover, .navbar-default .navbar-nav > .active > a:focus {
-    color: #ffffff;
-    background-color: #256b92;
-}
-.navbar-default .navbar-nav > .open > a, .navbar-default .navbar-nav > .open > a:hover, .navbar-default .navbar-nav > .open > a:focus {
-    color: #ffffff;
-    background-color: #256b92;
-}
-.navbar-default .navbar-toggle {
-    border-color: #256b92;
-}
-.navbar-default .navbar-toggle:hover, .navbar-default .navbar-toggle:focus {
-    background-color: #256b92;
-}
-.navbar-default .navbar-toggle .icon-bar {
-    background-color: #e5edf2;
-}
-.navbar-default .navbar-collapse,
-.navbar-default .navbar-form {
-    border-color: #e5edf2;
-}
-.navbar-default .navbar-link {
-    color: #e5edf2;
-}
-.navbar-default .navbar-link:hover {
-    color: #ffffff;
-}
+#calendar h1::after {
+    content: "";
+    width: 0;
+    height: 0;
+    position: absolute;
+    right: -30px;
+    top: 0;
 
-@media (max-width: 767px) {
-    .navbar-default .navbar-nav .open .dropdown-menu > li > a {
-        color: #e5edf2;
-    }
-    .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover, .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus {
-        color: #ffffff;
-    }
-    .navbar-default .navbar-nav .open .dropdown-menu > .active > a, .navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover, .navbar-default .navbar-nav .open .dropdown-menu > .active > a:focus {
-        color: #ffffff;
-        background-color: #256b92;
-    }
+    border: 40px solid red;
+    border-width: 40px 30px;
+    border-color: #0b3b65 transparent #0b3b65 transparent;
 }
-
 
 #eventlist {
     margin: 0;
     padding: 0;
+    margin-bottom: 50px;
 }
 #eventlist li {
     list-style: none;
-    margin: 0;
-    padding: 0;
     overflow: auto;
+    padding: 10px 20px;
+    margin-top: 5px;
 }
-#eventlist li.upcoming {
-    background: #ccc;
-    padding: 15px;
-    box-shadow: 2px 2px 12px #333;
-    margin: 20px 0;
-}
-#eventlist li.upcoming .summary {
-    font-size: 1.8em;
+
+#eventlist li .daydate {
+    width: 50px;
+    height: 50px;
+    border-radius: 50px;
+    display: block;
+    background: #0b3b65;
+    color: white;
+    float: left;
+    text-align: center;
     font-weight: normal;
-    color: #373;
-    text-align: center;
+    margin-right: 20px;
 }
-#eventlist li.upcoming time {
-    font-size: 1.2em;
-}
-#eventlist li.upcoming > span, #eventlist li.upcoming .loc {
+#eventlist li .daydate span.day {
     display: block;
-    clear: both;
+    font-size: 22px;
 }
-#eventlist li.upcoming .loc {
-    font-weight: bold;
-    text-align: center;
-    min-height: 48px;
-    background: url(../img/mappin.png) 6px center no-repeat;
-    margin: 5px 0;
-    padding: 10px 10px 10px 52px;
-    border-radius: 4px;
-    border: 1px solid rgba(0,0,255,0.1);
-}
-#eventlist li.upcoming .loc:hover {
-    background-color: rgba(0,0,255,0.05);
-}
-#eventlist li.upcoming .desc {
-    margin: 4px 0;
-    color: #888;
-}
-#eventlist li.upcoming > * {
-    float: none;
-    width: auto;
+#eventlist li .daydate span.month {
     display: block;
-    word-wrap: break-word;
+    font-size: 12px;
+    text-transform: uppercase;
 }
-
-#eventlist li.thisweek {
-    background: #ccc;
-    padding: 5px 15px;
-    box-shadow: 1px 1px 4px #777;
-    margin: 10px 0;
-    border-radius: 2px;
-    min-height: 44px;
-}
-#eventlist li.thisweek > * {
-    float: none;
-    width: auto;
+#eventlist li time {
     display: block;
-    word-wrap: break-word;
-}
-#eventlist li.thisweek .loc {
-    clear: both;
-}
-
-@media (min-width: 600px) {
-    #eventlist li.upcoming .summary, #eventlist li.thisweek .summary {
-        width: 70%;
-        float: left;
-        text-align: left;
-    }
-    #eventlist li.upcoming time, #eventlist li.thisweek time {
-        width: 30%;
-        text-align: right;
-        float: right;
-    }
-    #eventlist li.upcoming .loc, #eventlist li.thisweek .loc {
-        text-align: right;
-    }
+    text-transform: lowercase;
 }
