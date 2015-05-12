@@ -258,7 +258,7 @@ var renderWebsite = function(events, done) {
             }).forEach(function(ev) {
                 tw.push(ev.summary + " | " + ev.date_as_str);
             });
-        fs.writeFile("../website/out.html", idxhtml, function(err) {
+        fs.writeFile("../website/index.html", idxhtml, function(err) {
             if (err) { return done(err); }
             done();
         });
