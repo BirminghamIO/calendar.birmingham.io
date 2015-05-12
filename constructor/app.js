@@ -1,4 +1,5 @@
-var ical = require("ical"),
+var ical = require("ical"), // parser
+    icalendar = require("icalendar"), // generator
     async = require("async"),
     request = require("request"),
     config = require("./config"),
@@ -126,6 +127,69 @@ function fetchIcalUrlsFromMeetup(cb) {
     }
 }
 
+function fetchICSFromEventBrite(cb) {
+    var evurl = "https://www.eventbriteapi.com/v3/events/search/?organizer.id=ORG&token=" + config.EVENTBRITE_TOKEN + "&format=json";
+    var fn = "explicitEventBriteOrganisers.json";
+    fs.readFile(fn, function(err, data) {
+        if (err) {
+            console.log("Failed to read local file of EventBrite organisers", fn);
+            cb(null, []);
+            return;
+        }
+        var j;
+        try {
+            j = JSON.parse(data);
+        } catch(e) {
+            console.log("Failed to read local file of EventBrite organisers", fn, e);
+            cb(null, []);
+            return;
+        }
+        async.map(j, function(eborg, cb) {
+            var url = evurl.replace("ORG", eborg.id);
+            request.get(url, function(err, response) {
+                if (err) return cb(err);
+                // we now have a collection of eventbrite events. Turn them into ICS.
+                // this seems a bit stupid, since we're just going to have to parse the ICS data
+                // back into objects later, but it means that the core functionality continues
+                // as normal, and also that we know we're not relying on weird EB-specific stuff
+                // which doesn't fit into an ICS format.
+                var obj;
+                try {
+                    obj = JSON.parse(response.body);
+                } catch(e) {
+                    return cb(e);
+                }
+                if (!obj.events || !Array.isArray(obj.events)) {
+                    return cb(new Error("EventBrite response did not have an events key"));
+                }
+                var ics = new icalendar.iCalendar();
+                obj.events.forEach(function(ebev) {
+                    var ev = ics.addComponent('VEVENT');
+                    ev.setSummary(ebev.name.text);
+                    var start = new Date(), end = new Date();
+                    start.setTime(Date.parse(ebev.start.local));
+                    end.setTime(Date.parse(ebev.end.local));
+                    ev.setDate(start, end);
+                    var ven = ebev.venue.name;
+                    if (ebev.venue.address) {
+                        var addr = [ebev.venue.address.address_1, ebev.venue.address.address_2, ebev.venue.address.city, 
+                            ebev.venue.address.postal_code].filter(function(x) { return x; });
+                        ven += " (" + addr.join(", ") + ")";
+                    }
+                    ev.setLocation(ven);
+                    ev.addProperty("DESCRIPTION", ebev.description.text + "\n" + ebev.url);
+                    ev.addProperty("UID", ebev.id);
+                });
+
+                cb(null, {source: "eventbrite", icsdata: ics.toString()});
+            });
+        }, function(err, results) {
+            cb(err, results);
+        });
+
+    });
+}
+
 var renderWebsite = function(events, done) {
     var now = moment();
     var ne = [];
@@ -168,6 +232,7 @@ var renderWebsite = function(events, done) {
             text = text.replace(/(^|)@(\w+)/gi, function (s) {
                 return '<a href="http://twitter.com/' + s + '">' + s + '</a>';
             });
+            // removed because it highlights hex escapes like &#27;
             //text = text.replace(/(^|)#(\w+)/gi, function (s) {
             //    return '<a href="http://search.twitter.com/search?q=' + s.replace(/#/,'%23') + '">' + s + '</a>';
             //});
@@ -269,7 +334,8 @@ exports.createWebsite = function(done) {
 exports.mainJob = function mainJob() {
     async.parallel([
         fetchIcalUrlsFromLocalFile,
-        fetchIcalUrlsFromMeetup
+        fetchIcalUrlsFromMeetup,
+        fetchICSFromEventBrite
     ], function(err, results) {
         if (err) {
             console.log("We failed to get a list of ics URLs", err);
@@ -279,17 +345,25 @@ exports.mainJob = function mainJob() {
         var icsurls = [];
         icsurls = icsurls.concat.apply(icsurls, results);
         async.map(icsurls, function(icsurlobj, cb) {
-            request(icsurlobj.url, function(err, response, body) {
-                if (err) { 
-                    console.log("Failed to fetch URL", icsurlobj.url, err);
-                    body = null;
-                }
+            if (icsurlobj.url) { // we were given back a URL, so fetch ICS data from it
+                request(icsurlobj.url, function(err, response, body) {
+                    if (err) { 
+                        console.log("Failed to fetch URL", icsurlobj.url, err);
+                        body = null;
+                    }
+                    // sanitise source name. Shouldn't need this, because people are
+                    // supposed to read the above comment, but nobody ever does. So,
+                    // a source name must match [a-v0-9] (no punctuation)
+                    var source = icsurlobj.source.toLowerCase().replace(/[^a-v0-9]/g, '').substr(0,40);
+                    cb(null, {source: source, body: body});
+                });
+            } else { // we were given back something which is *already* ICS data, so use it
                 // sanitise source name. Shouldn't need this, because people are
                 // supposed to read the above comment, but nobody ever does. So,
                 // a source name must match [a-v0-9] (no punctuation)
                 var source = icsurlobj.source.toLowerCase().replace(/[^a-v0-9]/g, '').substr(0,40);
-                cb(null, {source: source, body: body});
-            });
+                cb(null, {source: source, body: icsurlobj.icsdata});
+            }
         }, function(err, results) {
             if (err) { 
                 console.log("We failed to fetch any ics URLs", err);
@@ -446,7 +520,7 @@ exports.mainJob = function mainJob() {
             });
         });
     });
-}
+};
 
 if (require.main === module) {
     exports.mainJob();
