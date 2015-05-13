@@ -224,18 +224,18 @@ var renderWebsite = function(events, done) {
     fs.readFile("./templates/index.handlebars", function(err, tplsrc) {
         if (err) { return done(err); }
         Handlebars.registerHelper('breaklines_linkify', function(text) {
+            if (text) text = text.replace(/&nbsp;/g, ' ');
             text = Handlebars.Utils.escapeExpression(text);
             text = text.replace(/(\r\n|\n|\r)/gm, '<br>');
             text = text.replace(/(https?:\/\/\S+)/gi, function (s) {
                 return '<a href="' + s + '">' + s + '</a>';
             });
-            text = text.replace(/(^|)@(\w+)/gi, function (s) {
-                return '<a href="http://twitter.com/' + s + '">' + s + '</a>';
+            text = text.replace(/(^|\s)(@(\w+))/gi, function (whole, beforespace, twitterhandle, twitterhandleword) {
+                return '<a href="http://twitter.com/' + twitterhandleword + '">' + twitterhandle + '</a>';
             });
-            // removed because it highlights hex escapes like &#27;
-            //text = text.replace(/(^|)#(\w+)/gi, function (s) {
-            //    return '<a href="http://search.twitter.com/search?q=' + s.replace(/#/,'%23') + '">' + s + '</a>';
-            //});
+            text = text.replace(/(^|[^&])#(\w+)/gi, function (s) {
+                return '<a href="http://search.twitter.com/search?q=' + s.replace(/#/,'%23') + '">' + s + '</a>';
+            });
             return new Handlebars.SafeString(text);
         });
         Handlebars.registerHelper('datepart', function(fmt) {

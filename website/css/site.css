@@ -1,7 +1,8 @@
 
 body {
-    background-image: url(../img/bgtall.jpg);
+    background-image: url(../img/bg.jpg);
     background-size: cover;
+    background-position: center center;
 }
 
 a {
@@ -69,6 +70,7 @@ footer, footer a { color: #999; }
     overflow: auto;
     padding: 10px 20px;
     margin-top: 5px;
+    word-wrap: break-word;
 }
 
 #eventlist li .daydate {
@@ -86,6 +88,7 @@ footer, footer a { color: #999; }
 #eventlist li .daydate span.day {
     display: block;
     font-size: 22px;
+    line-height: 29px;
 }
 #eventlist li .daydate span.month {
     display: block;
@@ -95,4 +98,27 @@ footer, footer a { color: #999; }
 #eventlist li time {
     display: block;
     text-transform: lowercase;
+}
+
+a.loc {
+    display: block;
+    margin-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.6);
+    padding-top: 4px;
+}
+
+@media (max-width: 600px) {
+    body {
+        background-image: url(../img/bgtall.jpg);
+    }
+    #calendar, #eventlist li {
+        width: 90%;
+        margin-left: 5%;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    #calendar h1 {
+        margin-left: -25px;
+        margin-right: -5px;
+    }
 }
