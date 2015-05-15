@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Birmingham.IO Technology Events Calendar</title>
 
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <!-- Bootstrap -->
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" rel="stylesheet">
 
@@ -20,9 +22,11 @@
     <![endif]-->
   </head>
   <body>
-    <div id='calendar'>
+    <header>
         <h1>Birmingham.IO</h1>
+    </header>
 
+    <div id='calendar'>
         <div id='about'>
             <h2>About</h2>
             <p>This is a calendar of all of the technology related meetups happening in 
@@ -38,7 +42,6 @@
             and one of the calendar maintainers can add it for you, or if you're technical you can send a 
             <a href='https://github.com/BirminghamIO/calendar.birmingham.io/blob/master/constructor/explicitIcalUrls.json'>Github pull request</a> to the calendar's list.</p> 
         </div>
-
     </div>
 
     <ul id="eventlist">
@@ -47,7 +50,7 @@
             <strong class="daydate"><span class="day">{{datepart 'D'}}</span>
                 <span class="month">{{datepart 'MMM'}}</span></strong>
             <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
-            <time datetime="{{this.start.dateTime}}">{{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
+            <time datetime="{{this.start.dateTime}}">{{datepart 'dddd'}} {{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
             <span class="desc">{{breaklines_linkify description}}</span>
             <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
         </li>
@@ -57,7 +60,7 @@
             <strong class="daydate"><span class="day">{{datepart 'D'}}</span>
                 <span class="month">{{datepart 'MMM'}}</span></strong>
             <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
-            <time datetime="{{this.start.dateTime}}">{{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
+            <time datetime="{{this.start.dateTime}}">{{datepart 'dddd'}} {{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
             <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
         </li>
     {{/each}}
