@@ -1,5 +1,5 @@
-
 body {
+    background-color: black;
     background-image: url(../img/bg.jpg);
     background-size: cover;
     background-position: center center;
@@ -13,11 +13,11 @@ h2 {
     font-size: 24px;
 }
 
-.navbar-wrapper { 
+.navbar-wrapper {
     margin-top: 20px;
     display: none;
 }
-footer { 
+footer {
     margin-top: 20px;
     padding: 20px 3px 3px 20px;
     text-align: right;
@@ -99,11 +99,13 @@ header h1::after {
     font-weight: normal;
     margin-right: 20px;
     margin-bottom: 8px;
+    padding-top: 6px;
+    padding-bottom: 8px;
 }
 #eventlist li .daydate span.day {
     display: block;
     font-size: 22px;
-    line-height: 29px;
+    line-height: 24px;
 }
 #eventlist li .daydate span.dow {
     line-height: 2px;
@@ -113,7 +115,8 @@ header h1::after {
 }
 #eventlist li .daydate span.month {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 12px;
     text-transform: uppercase;
 }
 #eventlist li time {
