@@ -5,7 +5,7 @@ var ical = require("ical"), // parser
     config = require("./config"),
     googleapis = require('googleapis'),
     crypto = require("crypto"),
-    moment = require("moment"),
+    moment = require("moment-range"),
     fs = require("fs"),
     time = require("time"),
     Handlebars = require("handlebars");
@@ -32,6 +32,7 @@ var jwt = new googleapis.auth.JWT(
         SERVICE_ACCOUNT_KEY_FILE,
         null,
         ['https://www.googleapis.com/auth/calendar']);
+var gcal = googleapis.calendar('v3');
 
 /* Meetup */
 var MEETUP_KEY = config.MEETUPKEY;
@@ -330,196 +331,430 @@ exports.createWebsite = function(done) {
     });
 };
 
-// first, get a list of ics urls from various places
-exports.mainJob = function mainJob() {
-    async.parallel([
-        fetchIcalUrlsFromLocalFile,
-        fetchIcalUrlsFromMeetup,
-        fetchICSFromEventBrite
-    ], function(err, results) {
-        if (err) {
-            console.log("We failed to get a list of ics URLs", err);
-            return;
-        }
-        // flatten results list and fetch them all
-        var icsurls = [];
-        icsurls = icsurls.concat.apply(icsurls, results);
-        async.map(icsurls, function(icsurlobj, cb) {
-            if (icsurlobj.url) { // we were given back a URL, so fetch ICS data from it
-                request(icsurlobj.url, function(err, response, body) {
-                    if (err) { 
-                        console.log("Failed to fetch URL", icsurlobj.url, err);
-                        body = null;
+function deduper(existingUndeleted, results, callback) {
+    /* Deduplication. Some people put their events in more than one calendar,
+       and this means that they'll show up twice in our calendar. Sadly, they
+       do not tend to put in the exact same record in multiple calendars; indeed,
+       they're often not even consistent about start and end times. So, we
+       consider two events to be the same thing if they have the same name *and*
+       they overlap in time. */
+    console.log("Dedupe checker");
+    var events_and_times = {};
+    for (var bioid in existingUndeleted) {
+        events_and_times[bioid] = {
+            bioid: bioid,
+            start: moment(existingUndeleted[bioid].start.dateTime),
+            end: moment(existingUndeleted[bioid].end.dateTime),
+            title: existingUndeleted[bioid].summary,
+            source: "google",
+            description: existingUndeleted[bioid].description || "",
+            location: existingUndeleted[bioid].location || "",
+            toString: function() {
+                return "[Google event '" + this.title + "' (" + this.start.format("YYMMDD-HHmm") + "), " + this.bioid;
+            }
+        };
+    }
+    results.forEach(function(r) {
+        // ignore events already in the google calendar for dupe checking
+        if (existingUndeleted[r.birminghamIOCalendarID]) return;
+
+        events_and_times[r.birminghamIOCalendarID] = {
+            bioid: r.birminghamIOCalendarID,
+            start: moment(r.start), end: moment(r.end),
+            title: r.summary, source: "new", event: r,
+            description: r.description || "",
+            location: r.location || "",
+            toString: function() {
+                return "[Feed event '" + this.title + "' (" + this.start.format("YYMMDD-HHmm") + "), " + this.bioid;
+            }
+        };
+    });
+    /* We have a dict of events, keyed on bioid, with start and end times.
+       Find any "duplicates" in this list and throw one of them away.
+       Note that if we fetch an event from the feeds and this event was in the
+       feeds last time we ran (so it's in Google), then that is not a duplicate;
+       we already take care of that by updating the Google event with the details
+       from the feed event. This is where the event record seems to be referring
+       to an event we already have, BUT has a different ID. This normally happens
+       when an event is in two feeds, but can also happen if an upstream feed
+       changes the ID of an event, which isn't supposed to happen. */
+    var new_events_throw_away_as_dupes = {};
+    var google_throw_away_as_dupes = {};
+    for (var thisbioid in events_and_times) {
+        var trn = moment().range(events_and_times[thisbioid].start,
+                                events_and_times[thisbioid].end),
+            ts = events_and_times[thisbioid].title,
+            tl = events_and_times[thisbioid].location,
+            td = events_and_times[thisbioid].description;
+        for (var otherbioid in events_and_times) {
+            if (otherbioid == thisbioid) {
+                continue;
+            }
+            var orn = moment().range(events_and_times[otherbioid].start,
+                                     events_and_times[otherbioid].end),
+                os = events_and_times[otherbioid].title,
+                ol = events_and_times[otherbioid].location,
+                od = events_and_times[otherbioid].description;
+
+            if (trn.overlaps(orn) && ts == os) {
+
+                if (events_and_times[thisbioid].source == "google" && 
+                    events_and_times[otherbioid].source == "google") {
+                    /* console.log("Google 2 Google duplicates:");
+                    console.log(thisbioid, events_and_times[thisbioid].title);
+                    console.log(events_and_times[thisbioid].start.toString(),
+                        events_and_times[thisbioid].end.toString());
+                    console.log("-----------------------");
+                    console.log(otherbioid, events_and_times[otherbioid].title);
+                    console.log(events_and_times[otherbioid].start.toString(),
+                        events_and_times[otherbioid].end.toString());
+                    console.log("=======================\n"); */
+
+                    /* two events, dupes of one another, both in Google.
+                       We need to explicitly delete one of them. */
+
+                    // first, check in case we've already thrown away one of these
+                    if (events_and_times[thisbioid].title == "Tech Wednesday" &&
+                        events_and_times[otherbioid].title == "Tech Wednesday") {
                     }
-                    // sanitise source name. Shouldn't need this, because people are
-                    // supposed to read the above comment, but nobody ever does. So,
-                    // a source name must match [a-v0-9] (no punctuation)
-                    var source = icsurlobj.source.toLowerCase().replace(/[^a-v0-9]/g, '').substr(0,40);
-                    cb(null, {source: source, body: body});
-                });
-            } else { // we were given back something which is *already* ICS data, so use it
-                // sanitise source name. Shouldn't need this, because people are
-                // supposed to read the above comment, but nobody ever does. So,
-                // a source name must match [a-v0-9] (no punctuation)
-                var source = icsurlobj.source.toLowerCase().replace(/[^a-v0-9]/g, '').substr(0,40);
-                cb(null, {source: source, body: icsurlobj.icsdata});
-            }
-        }, function(err, results) {
-            if (err) { 
-                console.log("We failed to fetch any ics URLs", err);
-                return;
-            }
-            // parse them all into ICS structures
-            async.concat(results, function(icsbodyobj, cb) {
-                var events = [];
-                if (icsbodyobj.body) {
-                    var parsedEvents = ical.parseICS(icsbodyobj.body);
-                    for (var k in parsedEvents) {
-                        if (parsedEvents.hasOwnProperty(k)) {
-                            var ev = parsedEvents[k];
-                            if (ev.type != "VEVENT") {
-                                /* Some ical files, including those from meetup, contain VTIMEZONE entries.
-                                   Skip them, since they are not actually events, and epic fail lies within. */
-                                continue;
-                            }
-                            ev.icalLibraryId = k;
-                            /* the birminghamIOCalendarID is the ID we eventually
-                               use to store this event in Google Calendar. As for
-                               sources, above, it must match /^[a-v0-9]+$/, and must
-                               be unique in the calendar. So, we assume that event.uid
-                               exists and is unique in the thing that we fetched, but
-                               can take any form it likes, and we construct an actually
-                               unique ID as "bio" + source + sha1(event.uid).hexdigest
-                               (because the hex digest of anything is /^[0-9a-f]+$/).
-                               That way, this ID is all of calendar-unique, probably
-                               globally-unique (because of the "bio"), and suitable
-                               for use as a gcal ID. */
-                            var shasum = crypto.createHash('sha1');
-                            try {
-                                shasum.update(ev.uid);
-                                ev.birminghamIOCalendarID = "bio" + icsbodyobj.source + shasum.digest('hex');
-                                events.push(ev);
-                            } catch(e) {
-                                console.log("Missing ev.uid", e, ev);
-                            }
+                    if (google_throw_away_as_dupes[thisbioid] || 
+                        google_throw_away_as_dupes[otherbioid]) {
+                        // we have, so don't do anything
+                        if (events_and_times[thisbioid].title == "Tech Wednesday" &&
+                            events_and_times[otherbioid].title == "Tech Wednesday") {
+                        }
+                    } else {
+                        /* check description and location and throw away the shorter one.
+                           check location first, because descriptions are likely to vary only
+                           in small parts, where locations are often a useful one
+                           "53 The Glebe, Orpington, G1R 0AA" and a crap one "G1R 0AA" */
+                        if (ol.length > tl.length) {
+                            google_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                        } else if (tl.length > ol.length) {
+                            google_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                        } else if (od.length > td.length) {
+                            google_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                        } else if (td.length > od.length) {
+                            google_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                        } else {
+                            // both the same. arbitrarily throw away this one
+                            google_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
                         }
                     }
+
+                } else if (events_and_times[thisbioid].source == "new" && 
+                    events_and_times[otherbioid].source == "new") {
+                    /* two events, both in the newly-fetched set, dupes of one another.
+                       Choose which one looks best and throw the other away.
+                       if one is already thrown away, then don't do anything. */
+                    //console.log("New 2 new duplicates:");
+                    if (new_events_throw_away_as_dupes[thisbioid]) {
+                        //console.log("we've already thrown away", thisbioid);
+                    } else if (new_events_throw_away_as_dupes[otherbioid]) {
+                        //console.log("we've already thrown away", otherbioid);
+                    } else {
+                        // choose one to throw away
+                        if (ol.length > tl.length) {
+                            new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                        } else if (tl.length > ol.length) {
+                            new_events_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                        } else if (od.length > td.length) {
+                            new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                        } else if (td.length > od.length) {
+                            new_events_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                        } else {
+                            // both the same. arbitrarily throw away this one
+                            new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                        }
+                    }
+                    //console.log("=======================\n");
+                } else {
+                    /* two events, one new, one in gcal already, dupes of one another
+                       (but, importantly, not the *same* event from the same source,
+                       because they have different bioIDs. This is where we've already
+                       got this meeting in the calendar from, say, meetup, and then
+                       it shows up new in, say, InnoBham calendar.)
+                       Throw away the new one. */
+                    if (events_and_times[thisbioid].source == "new") {
+                        new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                        //console.log("Throwing away this");
+                    } else {
+                        new_events_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                        //console.log("Throwing away other");
+                    }
+                    /*
+                    console.log("New 2 new duplicates:");
+                    console.log("-----------------------");
+                    console.log(thisbioid, events_and_times[thisbioid].title);
+                    console.log(events_and_times[thisbioid].start.toString(),
+                        events_and_times[thisbioid].end.toString());
+                    console.log("-----------------------");
+                    console.log(otherbioid, events_and_times[otherbioid].title);
+                    console.log(events_and_times[otherbioid].start.toString(),
+                        events_and_times[otherbioid].end.toString());
+                    console.log("=======================\n");
+                    */
                 }
-                cb(null, events);
-            }, function(err, results) {
-                if (err) { 
-                    console.log("We failed to create a list of events", err);
+            }
+        }
+    }
+
+    /* Throw away new events in our throwaway list by reconstructing the
+       results list without them in. */
+    var nresults = [];
+    var remaining = [];
+    results.forEach(function(r) {
+        if (new_events_throw_away_as_dupes[r.birminghamIOCalendarID]) {
+            //console.log("not adding", r.summary);
+        } else {
+            nresults.push(r);
+            remaining.push(r.summary + " (" + r.start + ")");
+        }
+    });
+    results = nresults;
+    callback(null, nresults, google_throw_away_as_dupes);
+}
+
+function throwAwayGoogleDupes(google_throw_away_as_dupes, existing, callback) {
+    /* Throw away Google dupes by actually deleting them. */
+    async.eachSeries(Object.keys(google_throw_away_as_dupes), function(bioid, cb) {
+        //console.log("Deleting Google item which is a dupe of another item", bioid, existing[bioid].summary, existing[bioid].start);
+        gcal.events.delete({
+            auth: jwt,
+            calendarId: GOOGLE_CALENDAR_ID,
+            eventId: bioid
+        }, cb);
+    }, callback);
+}
+
+function updateCalendar(results, existing, callback) {
+    /* Now, go through each of our fetched events and either update them 
+       if they exist, or create them if not. Note that we do not pass an
+       err in the update/insert to the callback, because that will terminate
+       the async.map; instead, we always say that there was no error, and
+       then if there was we pass it inside the results, so we can check later. */
+    async.mapSeries(results, function(ev, callback) {
+        var event_resource = {
+            start: { dateTime: moment(ev.start).format() },
+            end: { dateTime: moment(ev.end).format() },
+            description: ev.description || "",
+            location: ev.location || "",
+            summary: ev.summary,
+            status: "confirmed"
+        };
+        if (ev.unparsed_rrules) {
+            event_resource.recurrence = ev.unparsed_rrules;
+            /* Recurring events require an explicit start and end timezone.
+               Timezones are hard. Fortunately, we are in England and so don't care.
+               Send her victorious. */
+            event_resource.start.timeZone = TIMEZONE;
+            event_resource.end.timeZone = TIMEZONE;
+        }
+        if (existing[ev.birminghamIOCalendarID]) {
+            //console.log("Update event", ev.birminghamIOCalendarID);
+            gcal.events.patch({
+                auth: jwt, 
+                calendarId: GOOGLE_CALENDAR_ID,
+                eventId: ev.birminghamIOCalendarID,
+                resource: event_resource
+            }, function(err, resp) {
+                if (err) {
+                    callback(null, {success: false, err: err, type: "update", event: ev});
                     return;
                 }
+                callback(null, {success: true, type: "update", event: ev});
+            });
+        } else {
+            var event_resource_clone = JSON.parse(JSON.stringify(event_resource));
+            event_resource_clone.id = ev.birminghamIOCalendarID;
+            gcal.events.insert({
+                auth: jwt, 
+                calendarId: GOOGLE_CALENDAR_ID,
+                resource: event_resource_clone
+            }, function(err, resp) {
+                if (err) {
+                    callback(null, {success: false, err: err, type: "insert", event: ev});
+                    return;
+                }
+                callback(null, {success: true, type: "insert", event: ev});
+            });
+        }
+    }, function(err, results) {
+        if (err) { console.log("Update/insert got an error (this shouldn't happen!)", err); return; }
+        var successes = [], failures = [], inserts = 0, updates = 0;
+        results.forEach(function(r) {
+            if (r.success) {
+                successes.push(r.event);
+                if (r.type == "insert") { inserts += 1; }
+                if (r.type == "update") { updates += 1; }
+            } else {
+                failures.push({event: r.event, err: r.err});
+            }
+        });
+        console.log("Successfully dealt with", successes.length, 
+            "events (" + inserts, "new events,", updates, "existing events)");
+        console.log("Failed to deal with", failures.length, "events");
+        if (failures.length > 0) {
+            console.log("== Failures ==");
+            failures.forEach(function(f) {
+                console.log("Event", f.event.summary, 
+                    "(" + f.event.uid + ", " + f.event.birminghamIOCalendarID + ")", 
+                    JSON.stringify(f.err));
+            });
+        }
+    });
+}
 
-                // auth to the google calendar
-                jwt.authorize(function(err, tokens) {
-                    if (err) { console.log("Problem authorizing to Google", err); return; }
-                    var gcal = googleapis.calendar('v3');
+function handleListOfParsedEvents(err, results) {
+    if (err) { 
+        console.log("We failed to create a list of events", err);
+        return;
+    }
 
-                    /* Get list of events */
-                    gcal.events.list({auth: jwt, calendarId: GOOGLE_CALENDAR_ID, showDeleted: true}, function(err, resp) {
-                        if (err) { console.log("Problem getting existing events", err); return; }
-                        // Make a list of existing events keyed by uid, which is the unique key we created
-                        var existing = {};
-                        resp.items.forEach(function(ev) { existing[ev.id] = ev; });
-                        
-                        // Make a list of events which are in the google calendar and are *not* upstream, and flag them
-                        var deletedUpstream = [];
-                        var presentUpstream = {};
-                        results.forEach(function(upstr) {
-                            presentUpstream[upstr.birminghamIOCalendarID] = "yes";
-                        });
-                        for (var bioid in existing) {
-                            if (!presentUpstream[bioid]) {
-                                deletedUpstream.push(existing[bioid]);
-                            }
-                        }
+    // auth to the google calendar
+    jwt.authorize(function(err, tokens) {
+        if (err) { console.log("Problem authorizing to Google", err); return; }
 
-                        /* Now, go through each of our fetched events and either update them 
-                           if they exist, or create them if not. Note that we do not pass an
-                           err in the update/insert to the callback, because that will terminate
-                           the async.map; instead, we always say that there was no error, and
-                           then if there was we pass it inside the results, so we can check later. */
-                        async.mapSeries(results, function(ev, callback) {
-                            var event_resource = {
-                                start: { dateTime: moment(ev.start).format() },
-                                end: { dateTime: moment(ev.end).format() },
-                                description: ev.description || "",
-                                location: ev.location || "",
-                                summary: ev.summary,
-                                status: "confirmed"
-                            };
-                            if (ev.unparsed_rrules) {
-                                event_resource.recurrence = ev.unparsed_rrules;
-                                /* Recurring events require an explicit start and end timezone.
-                                   Timezones are hard. Fortunately, we are in England and so don't care.
-                                   Send her victorious. */
-                                event_resource.start.timeZone = TIMEZONE;
-                                event_resource.end.timeZone = TIMEZONE;
-                            }
-                            if (existing[ev.birminghamIOCalendarID]) {
-                                //console.log("Update event", ev.birminghamIOCalendarID);
-                                gcal.events.patch({
-                                    auth: jwt, 
-                                    calendarId: GOOGLE_CALENDAR_ID,
-                                    eventId: ev.birminghamIOCalendarID,
-                                    resource: event_resource
-                                }, function(err, resp) {
-                                    if (err) {
-                                        callback(null, {success: false, err: err, type: "update", event: ev});
-                                        return;
-                                    }
-                                    callback(null, {success: true, type: "update", event: ev});
-                                });
-                            } else {
-                                var event_resource_clone = JSON.parse(JSON.stringify(event_resource));
-                                event_resource_clone.id = ev.birminghamIOCalendarID;
-                                gcal.events.insert({
-                                    auth: jwt, 
-                                    calendarId: GOOGLE_CALENDAR_ID,
-                                    resource: event_resource_clone
-                                }, function(err, resp) {
-                                    if (err) {
-                                        callback(null, {success: false, err: err, type: "insert", event: ev});
-                                        return;
-                                    }
-                                    callback(null, {success: true, type: "insert", event: ev});
-                                });
-                            }
-                        }, function(err, results) {
-                            if (err) { console.log("Update/insert got an error (this shouldn't happen!)", err); return; }
-                            var successes = [], failures = [], inserts = 0, updates = 0;
-                            results.forEach(function(r) {
-                                if (r.success) {
-                                    successes.push(r.event);
-                                    if (r.type == "insert") { inserts += 1; }
-                                    if (r.type == "update") { updates += 1; }
-                                } else {
-                                    failures.push({event: r.event, err: r.err});
-                                }
-                            });
-                            console.log("Successfully dealt with", successes.length, 
-                                "events (" + inserts, "new events,", updates, "existing events)");
-                            console.log("Failed to deal with", failures.length, "events");
-                            if (failures.length > 0) {
-                                console.log("== Failures ==");
-                                failures.forEach(function(f) {
-                                    console.log("Event", f.event.summary, 
-                                        "(" + f.event.uid + ", " + f.event.birminghamIOCalendarID + ")", 
-                                        JSON.stringify(f.err));
-                                });
-                            }
-                            console.log("== Events present in the Google calendar but not present in sources: %d ==", deletedUpstream.length);
-                            deletedUpstream.forEach(function(duev) {
-                                console.log(duev.summary + " (" + duev.id + ")", duev.start.dateTime);
-                            });
+        var respitems = [];
+        function getListOfEvents(cb, nextPageToken) {
+            var params = {auth: jwt, calendarId: GOOGLE_CALENDAR_ID, showDeleted: true, singleEvents: true};
+            if (nextPageToken) { params.pageToken = nextPageToken; }
+            gcal.events.list(params, function(err, resp) {
+                if (err) { return cb(err); }
+                respitems = respitems.concat(resp.items);
+                if (resp.nextPageToken) {
+                    getListOfEvents(cb, resp.nextPageToken);
+                } else {
+                    cb(null, respitems);
+                }
+            });
+        }
+
+        /* Get list of events */
+        getListOfEvents(function(err, respitems) {
+            if (err) { console.log("Problem getting existing events", err); return; }
+            // Make a list of existing events keyed by uid, which is the unique key we created
+            var existing = {};
+            respitems.forEach(function(ev) { existing[ev.id] = ev; });
+
+            // Make a list of events which are in the google calendar and are *not* upstream, and flag them
+            var deletedUpstream = [];
+            var presentUpstream = {};
+            results.forEach(function(upstr) {
+                presentUpstream[upstr.birminghamIOCalendarID] = "yes";
+            });
+            for (var bioid in existing) {
+                if (!presentUpstream[bioid]) {
+                    deletedUpstream.push(existing[bioid]);
+                }
+            }
+
+            var existingUndeleted = {};
+            for (var k in existing) {
+                if (existing[k].status != "cancelled") existingUndeleted[k] = existing[k];
+            }
+
+            deduper(existingUndeleted, results, function(err, results, google_deletes) {
+                if (err) { console.error("Error in deduper!", err); return; }
+                throwAwayGoogleDupes(google_deletes, existing, function(err) {
+                    if (err) { console.error("Deleting dupes already in Google failed!", err); return; }
+                    return;
+                    updateCalendar(results, existing, function(err) {
+                        if (err) { console.error("Updating the calendar failed", err); return; }
+                        console.log("== Events present in the Google calendar but not present in sources: %d ==", deletedUpstream.length);
+                        deletedUpstream.forEach(function(duev) {
+                            console.log(duev.summary + " (" + duev.id + ")", duev.start.dateTime);
                         });
                     });
                 });
             });
         });
     });
+}
+
+function processICSData(err, results) {
+    if (err) { 
+        console.log("We failed to fetch any ics URLs", err);
+        return;
+    }
+    // parse them all into ICS structures
+    async.concat(results, function(icsbodyobj, cb) {
+        var events = [];
+        if (icsbodyobj.body) {
+            var parsedEvents = ical.parseICS(icsbodyobj.body);
+            for (var k in parsedEvents) {
+                if (parsedEvents.hasOwnProperty(k)) {
+                    var ev = parsedEvents[k];
+                    if (ev.type != "VEVENT") {
+                        /* Some ical files, including those from meetup, contain VTIMEZONE entries.
+                           Skip them, since they are not actually events, and epic fail lies within. */
+                        continue;
+                    }
+                    ev.icalLibraryId = k;
+                    /* the birminghamIOCalendarID is the ID we eventually
+                       use to store this event in Google Calendar. As for
+                       sources, above, it must match /^[a-v0-9]+$/, and must
+                       be unique in the calendar. So, we assume that event.uid
+                       exists and is unique in the thing that we fetched, but
+                       can take any form it likes, and we construct an actually
+                       unique ID as "bio" + source + sha1(event.uid).hexdigest
+                       (because the hex digest of anything is /^[0-9a-f]+$/).
+                       That way, this ID is all of calendar-unique, probably
+                       globally-unique (because of the "bio"), and suitable
+                       for use as a gcal ID. */
+                    var shasum = crypto.createHash('sha1');
+                    try {
+                        shasum.update(ev.uid);
+                        ev.birminghamIOCalendarID = "bio" + icsbodyobj.source + shasum.digest('hex');
+                        events.push(ev);
+                    } catch(e) {
+                        console.log("Missing ev.uid", e, ev);
+                    }
+                }
+            }
+        }
+        cb(null, events);
+    }, handleListOfParsedEvents);
+}
+
+function processICSURLs(err, results) {
+    if (err) {
+        console.log("We failed to get a list of ics URLs", err);
+        return;
+    }
+    // flatten results list and fetch them all
+    var icsurls = [];
+    icsurls = icsurls.concat.apply(icsurls, results);
+    async.map(icsurls, function(icsurlobj, cb) {
+        if (icsurlobj.url) { // we were given back a URL, so fetch ICS data from it
+            request(icsurlobj.url, function(err, response, body) {
+                if (err) { 
+                    console.log("Failed to fetch URL", icsurlobj.url, err);
+                    body = null;
+                }
+                // sanitise source name. Shouldn't need this, because people are
+                // supposed to read the above comment, but nobody ever does. So,
+                // a source name must match [a-v0-9] (no punctuation)
+                var source = icsurlobj.source.toLowerCase().replace(/[^a-v0-9]/g, '').substr(0,40);
+                cb(null, {source: source, body: body});
+            });
+        } else { // we were given back something which is *already* ICS data, so use it
+            // sanitise source name. Shouldn't need this, because people are
+            // supposed to read the above comment, but nobody ever does. So,
+            // a source name must match [a-v0-9] (no punctuation)
+            var source = icsurlobj.source.toLowerCase().replace(/[^a-v0-9]/g, '').substr(0,40);
+            cb(null, {source: source, body: icsurlobj.icsdata});
+        }
+    }, processICSData);
+}
+
+exports.mainJob = function mainJob() {
+    // first, get a list of ics urls from various places
+    async.parallel([
+        fetchIcalUrlsFromLocalFile,
+        fetchIcalUrlsFromMeetup,
+        fetchICSFromEventBrite
+    ], processICSURLs);
 };
 
 if (require.main === module) {
