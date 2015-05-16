@@ -1,5 +1,5 @@
-
 body {
+    background-color: black;
     background-image: url(../img/bg.jpg);
     background-size: cover;
     background-position: center center;
@@ -13,11 +13,11 @@ h2 {
     font-size: 24px;
 }
 
-.navbar-wrapper { 
+.navbar-wrapper {
     margin-top: 20px;
     display: none;
 }
-footer { 
+footer {
     margin-top: 20px;
     padding: 20px 3px 3px 20px;
     text-align: right;
