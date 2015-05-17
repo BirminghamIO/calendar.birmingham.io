@@ -38,12 +38,12 @@ header {
     margin-bottom: 0;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
-    padding-bottom: 0;
 }
 #calendar {
     padding-top: 10px;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+    margin-top: 0;
 }
 
 header div.header {
