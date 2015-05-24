@@ -138,7 +138,7 @@ header div.header::after {
 .eventbody {
 }
 
-a.loc {
+a.loc, span.desc {
     margin: 12px;
     display: block;
 }

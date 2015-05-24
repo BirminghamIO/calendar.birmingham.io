@@ -61,7 +61,9 @@
             </div>
             <div class="eventbody">
                 <span class="desc">{{breaklines_linkify description}}</span>
-                <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
+                {{#if this.location}}
+                    <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
+                {{/if}}
             </div>
         </li>
     {{/each}}
@@ -76,7 +78,9 @@
             </div>
 
             <div class="eventbody">
-                <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{{this.location}}}</a>
+                {{#if this.location}}
+                    <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
+                {{/if}}
             </div>
         </li>
     {{/each}}
