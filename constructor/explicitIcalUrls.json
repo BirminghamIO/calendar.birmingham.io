@@ -43,6 +43,11 @@
         "url": "https://www.google.com/calendar/ical/orangejon.com_qv7nmqln3k5cok7rr2oqkqlil4%40group.calendar.google.com/public/basic.ics",
         "source": "ueksbrum",
         "notes": "@UXBrum on twitter, from their own Google Calendar at https://www.google.com/calendar/embed?src=orangejon.com_qv7nmqln3k5cok7rr2oqkqlil4%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "http://mmug.org.uk/calendar/ical",
+        "source": "mmug",
+        "notes": "Midlands Macintosh User Group, from mmug.org.uk and @dombarnes on talk.birmingham.io"
     }
     
 ]
