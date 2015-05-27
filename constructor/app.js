@@ -161,7 +161,9 @@ function fetchICSFromEventBrite(cb) {
                     return cb(e);
                 }
                 if (!obj.events || !Array.isArray(obj.events)) {
-                    return cb(new Error("EventBrite response did not have an events key"));
+                    console.log("EventBrite: we didn't get any events");
+                    if (obj.error) console.log("We got an error response", obj.error, obj.error_description);
+                    return cb(null, []);
                 }
                 var ics = new icalendar.iCalendar();
                 obj.events.forEach(function(ebev) {
@@ -196,6 +198,7 @@ var renderWebsite = function(events, done) {
     var ne = [];
     events.forEach(function(ev) {
         ev.start_parsed = moment(ev.start.dateTime);
+        console.log(ev.summary, ev.start_parsed.toString(), ev.start.dateTime);
         ev.end_parsed = moment(ev.end.dateTime);
         ev.date_as_str = ev.start_parsed.format("ha") + "&ndash;" + ev.end_parsed.format("ha") + " " +
             ev.start_parsed.format("ddd Do MMM");
