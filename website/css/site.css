@@ -30,16 +30,17 @@ header, #calendar, #eventlist li {
     max-width: 600px;
     margin-left: 100px;
     border-radius: 8px;
-    padding: 12px;
     margin-top: 25px;
 }
 
 header {
+    padding: 12px;
     margin-bottom: 0;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
 }
 #calendar {
+    padding: 12px;
     padding-top: 10px;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
@@ -86,7 +87,6 @@ header div.header::after {
 #eventlist li {
     list-style: none;
     overflow: auto;
-    padding: 12px 12px;
     margin-top: 10px;
     word-wrap: break-word;
 }
@@ -106,8 +106,7 @@ header div.header::after {
     float: left;
     text-align: center;
     font-weight: normal;
-    margin-right: 20px;
-    margin-bottom: 8px;
+    margin-right: 12px;
     padding-top: 6px;
     padding-bottom: 8px;
 }
@@ -132,11 +131,20 @@ header div.header::after {
     display: block;
 }
 
-a.loc {
+.eventheader {
+    padding: 12px;
+    background: rgba(192, 192, 192, 0.5);
+}
+.eventbody {
+}
+
+a.loc, span.desc {
+    margin: 12px;
     display: block;
-    margin-top: 4px;
-    border-top: 1px solid rgba(255,255,255,0.6);
-    padding-top: 4px;
+}
+
+a.summary {
+    font-weight: bold;
 }
 
 span.desc {
@@ -152,7 +160,6 @@ span.desc {
         width: 90%;
         margin-left: 5%;
         border-radius: 8px;
-        padding: 10px;
     }
     header {
         padding: 0;

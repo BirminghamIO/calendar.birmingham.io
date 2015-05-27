@@ -12,6 +12,8 @@
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Birmingham.IO -->
+    <link rel="icon" type="image/png" href="img/icon.ico">
+    <link rel="apple-touch-icon" type="image/png" href="img/apple-touch-icon.png">
     <link href="css/site.css" rel="stylesheet">
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
@@ -50,27 +52,42 @@
     <ul id="eventlist">
     {{#each upcoming}}
         <li class="upcoming">
-            <strong class="daydate"><span class="day">{{datepart 'D'}}</span>
-                <span class="month">{{datepart 'MMM'}}</span></strong>
-            <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
-            <time datetime="{{this.start.dateTime}}">{{datepart 'dddd'}} {{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
-            <span class="desc">{{breaklines_linkify description}}</span>
-            <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
+            <div class="eventheader">
+                <strong class="daydate"><span class="day">{{datepart 'D'}}</span>
+                    <span class="month">{{datepart 'MMM'}}</span></strong>
+                <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
+                <time datetime="{{this.start.dateTime}}">{{datepart 'dddd'}} {{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
+                <div style='clear:left'></div>
+            </div>
+            <div class="eventbody">
+                <span class="desc">{{breaklines_linkify description}}</span>
+                {{#if this.location}}
+                    <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
+                {{/if}}
+            </div>
         </li>
     {{/each}}
     {{#each thisweek}}
         <li class="thisweek">
-            <strong class="daydate"><span class="day">{{datepart 'D'}}</span>
-                <span class="month">{{datepart 'MMM'}}</span></strong>
-            <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
-            <time datetime="{{this.start.dateTime}}">{{datepart 'dddd'}} {{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
-            <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
+            <div class="eventheader">
+                <strong class="daydate"><span class="day">{{datepart 'D'}}</span>
+                    <span class="month">{{datepart 'MMM'}}</span></strong>
+                <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
+                <time datetime="{{this.start.dateTime}}">{{datepart 'dddd'}} {{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
+                <div style='clear:left'></div>
+            </div>
+
+            <div class="eventbody">
+                {{#if this.location}}
+                    <a class="loc" href="https://www.google.com/maps?q={{{this.url_escaped_location}}}">{{this.location}}</a>
+                {{/if}}
+            </div>
         </li>
     {{/each}}
     </ul>
 
     <footer>
-    Made by the <a href="https://github.com/BirminghamIO/calendar.birmingham.io">Birmingham calendar team</a>. Background 
+    Built by the <a href="https://github.com/BirminghamIO/calendar.birmingham.io">Birmingham calendar team</a>. Background 
     image from <a href="https://www.flickr.com/photos/54979340@N03/5202391649/">Robert Horton</a>. Design originated by
     Jeremy Baines.
     </footer>
