@@ -48,6 +48,11 @@
         "url": "http://mmug.org.uk/calendar/ical",
         "source": "mmug",
         "notes": "Midlands Macintosh User Group, from mmug.org.uk and @dombarnes on talk.birmingham.io"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/hbb0gijc025n1kvlgaigscfmjo%40group.calendar.google.com/public/basic.ics",
+        "source": "brum.js",
+        "notes": "Brum.js - Birmingham JavaScript user group."
     }
     
 ]
