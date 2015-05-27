@@ -162,8 +162,12 @@ function fetchICSFromEventBrite(cb) {
                 }
                 if (!obj.events || !Array.isArray(obj.events)) {
                     console.log("EventBrite: we didn't get any events");
-                    if (obj.error) console.log("We got an error response", obj.error, obj.error_description);
-                    return cb(null, []);
+                    if (obj.error) console.log("EventBrite: We got an error response", obj.error, obj.error_description);
+                    return cb(null, {
+                        source: "eventbrite",
+                        // something broke, so return an empty ical
+                        icsdata: "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//wp-events-plugin.com//5.53//EN\nEND:VCALENDAR\n"
+                    });
                 }
                 var ics = new icalendar.iCalendar();
                 obj.events.forEach(function(ebev) {
