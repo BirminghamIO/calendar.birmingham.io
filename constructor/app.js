@@ -387,120 +387,138 @@ function deduper(existingUndeleted, results, callback) {
        changes the ID of an event, which isn't supposed to happen. */
     var new_events_throw_away_as_dupes = {};
     var google_throw_away_as_dupes = {};
+
+    /* Deduping every event against every other event takes *ages*. Since duplicate events must overlap,
+       we break up the Big List Of Events into a bunch of separate sublists, one per week. We then process
+       one sublist at a time and dedupe each event in that sublist against other events in that sublist,
+       which is a lot, lot faster. */
+
+    var events_and_times_by_week = {};
     for (var thisbioid in events_and_times) {
-        var trn = moment().range(events_and_times[thisbioid].start,
-                                events_and_times[thisbioid].end),
-            ts = events_and_times[thisbioid].title,
-            tl = events_and_times[thisbioid].location,
-            td = events_and_times[thisbioid].description;
-        for (var otherbioid in events_and_times) {
-            if (otherbioid == thisbioid) {
-                continue;
-            }
-            var orn = moment().range(events_and_times[otherbioid].start,
-                                     events_and_times[otherbioid].end),
-                os = events_and_times[otherbioid].title,
-                ol = events_and_times[otherbioid].location,
-                od = events_and_times[otherbioid].description;
+        var week_year = events_and_times[thisbioid].start.week() + "w" + events_and_times[thisbioid].start.year();
+        if (!events_and_times_by_week[week_year]) { events_and_times_by_week[week_year] = {}; }
+        events_and_times_by_week[week_year][thisbioid] = events_and_times[thisbioid];
+    }
 
-            if (trn.overlaps(orn) && ts == os) {
+    for (var wy in events_and_times_by_week) {
+        var this_events_and_times = events_and_times_by_week[wy];
+        console.log("Processing events in week", wy);
 
-                if (events_and_times[thisbioid].source == "google" && 
-                    events_and_times[otherbioid].source == "google") {
-                    /* console.log("Google 2 Google duplicates:");
-                    console.log(thisbioid, events_and_times[thisbioid].title);
-                    console.log(events_and_times[thisbioid].start.toString(),
-                        events_and_times[thisbioid].end.toString());
-                    console.log("-----------------------");
-                    console.log(otherbioid, events_and_times[otherbioid].title);
-                    console.log(events_and_times[otherbioid].start.toString(),
-                        events_and_times[otherbioid].end.toString());
-                    console.log("=======================\n"); */
+        for (var thisbioid in this_events_and_times) {
+            var trn = moment().range(events_and_times[thisbioid].start,
+                                    events_and_times[thisbioid].end),
+                ts = events_and_times[thisbioid].title,
+                tl = events_and_times[thisbioid].location,
+                td = events_and_times[thisbioid].description;
+            for (var otherbioid in this_events_and_times) {
+                if (otherbioid == thisbioid) {
+                    continue;
+                }
+                var orn = moment().range(events_and_times[otherbioid].start,
+                                         events_and_times[otherbioid].end),
+                    os = events_and_times[otherbioid].title,
+                    ol = events_and_times[otherbioid].location,
+                    od = events_and_times[otherbioid].description;
 
-                    /* two events, dupes of one another, both in Google.
-                       We need to explicitly delete one of them. */
+                if (trn.overlaps(orn) && ts == os) {
 
-                    // first, check in case we've already thrown away one of these
-                    if (events_and_times[thisbioid].title == "Tech Wednesday" &&
-                        events_and_times[otherbioid].title == "Tech Wednesday") {
-                    }
-                    if (google_throw_away_as_dupes[thisbioid] || 
-                        google_throw_away_as_dupes[otherbioid]) {
-                        // we have, so don't do anything
+                    if (events_and_times[thisbioid].source == "google" && 
+                        events_and_times[otherbioid].source == "google") {
+                        /* console.log("Google 2 Google duplicates:");
+                        console.log(thisbioid, events_and_times[thisbioid].title);
+                        console.log(events_and_times[thisbioid].start.toString(),
+                            events_and_times[thisbioid].end.toString());
+                        console.log("-----------------------");
+                        console.log(otherbioid, events_and_times[otherbioid].title);
+                        console.log(events_and_times[otherbioid].start.toString(),
+                            events_and_times[otherbioid].end.toString());
+                        console.log("=======================\n"); */
+
+                        /* two events, dupes of one another, both in Google.
+                           We need to explicitly delete one of them. */
+
+                        // first, check in case we've already thrown away one of these
                         if (events_and_times[thisbioid].title == "Tech Wednesday" &&
                             events_and_times[otherbioid].title == "Tech Wednesday") {
                         }
-                    } else {
-                        /* check description and location and throw away the shorter one.
-                           check location first, because descriptions are likely to vary only
-                           in small parts, where locations are often a useful one
-                           "53 The Glebe, Orpington, G1R 0AA" and a crap one "G1R 0AA" */
-                        if (ol.length > tl.length) {
-                            google_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
-                        } else if (tl.length > ol.length) {
-                            google_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
-                        } else if (od.length > td.length) {
-                            google_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
-                        } else if (td.length > od.length) {
-                            google_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                        if (google_throw_away_as_dupes[thisbioid] || 
+                            google_throw_away_as_dupes[otherbioid]) {
+                            // we have, so don't do anything
+                            if (events_and_times[thisbioid].title == "Tech Wednesday" &&
+                                events_and_times[otherbioid].title == "Tech Wednesday") {
+                            }
                         } else {
-                            // both the same. arbitrarily throw away this one
-                            google_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                            /* check description and location and throw away the shorter one.
+                               check location first, because descriptions are likely to vary only
+                               in small parts, where locations are often a useful one
+                               "53 The Glebe, Orpington, G1R 0AA" and a crap one "G1R 0AA" */
+                            if (ol.length > tl.length) {
+                                google_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                            } else if (tl.length > ol.length) {
+                                google_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                            } else if (od.length > td.length) {
+                                google_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                            } else if (td.length > od.length) {
+                                google_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                            } else {
+                                // both the same. arbitrarily throw away this one
+                                google_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                            }
                         }
-                    }
 
-                } else if (events_and_times[thisbioid].source == "new" && 
-                    events_and_times[otherbioid].source == "new") {
-                    /* two events, both in the newly-fetched set, dupes of one another.
-                       Choose which one looks best and throw the other away.
-                       if one is already thrown away, then don't do anything. */
-                    //console.log("New 2 new duplicates:");
-                    if (new_events_throw_away_as_dupes[thisbioid]) {
-                        //console.log("we've already thrown away", thisbioid);
-                    } else if (new_events_throw_away_as_dupes[otherbioid]) {
-                        //console.log("we've already thrown away", otherbioid);
-                    } else {
-                        // choose one to throw away
-                        if (ol.length > tl.length) {
-                            new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
-                        } else if (tl.length > ol.length) {
-                            new_events_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
-                        } else if (od.length > td.length) {
-                            new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
-                        } else if (td.length > od.length) {
-                            new_events_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                    } else if (events_and_times[thisbioid].source == "new" && 
+                        events_and_times[otherbioid].source == "new") {
+                        /* two events, both in the newly-fetched set, dupes of one another.
+                           Choose which one looks best and throw the other away.
+                           if one is already thrown away, then don't do anything. */
+                        //console.log("New 2 new duplicates:");
+                        if (new_events_throw_away_as_dupes[thisbioid]) {
+                            //console.log("we've already thrown away", thisbioid);
+                        } else if (new_events_throw_away_as_dupes[otherbioid]) {
+                            //console.log("we've already thrown away", otherbioid);
                         } else {
-                            // both the same. arbitrarily throw away this one
-                            new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                            // choose one to throw away
+                            if (ol.length > tl.length) {
+                                new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                            } else if (tl.length > ol.length) {
+                                new_events_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                            } else if (od.length > td.length) {
+                                new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                            } else if (td.length > od.length) {
+                                new_events_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                            } else {
+                                // both the same. arbitrarily throw away this one
+                                new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                            }
                         }
-                    }
-                    //console.log("=======================\n");
-                } else {
-                    /* two events, one new, one in gcal already, dupes of one another
-                       (but, importantly, not the *same* event from the same source,
-                       because they have different bioIDs. This is where we've already
-                       got this meeting in the calendar from, say, meetup, and then
-                       it shows up new in, say, InnoBham calendar.)
-                       Throw away the new one. */
-                    if (events_and_times[thisbioid].source == "new") {
-                        new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
-                        //console.log("Throwing away this");
+                        //console.log("=======================\n");
                     } else {
-                        new_events_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
-                        //console.log("Throwing away other");
+                        /* two events, one new, one in gcal already, dupes of one another
+                           (but, importantly, not the *same* event from the same source,
+                           because they have different bioIDs. This is where we've already
+                           got this meeting in the calendar from, say, meetup, and then
+                           it shows up new in, say, InnoBham calendar.)
+                           Throw away the new one. */
+                        if (events_and_times[thisbioid].source == "new") {
+                            new_events_throw_away_as_dupes[thisbioid] = events_and_times[thisbioid];
+                            //console.log("Throwing away this");
+                        } else {
+                            new_events_throw_away_as_dupes[otherbioid] = events_and_times[otherbioid];
+                            //console.log("Throwing away other");
+                        }
+                        /*
+                        console.log("New 2 new duplicates:");
+                        console.log("-----------------------");
+                        console.log(thisbioid, events_and_times[thisbioid].title);
+                        console.log(events_and_times[thisbioid].start.toString(),
+                            events_and_times[thisbioid].end.toString());
+                        console.log("-----------------------");
+                        console.log(otherbioid, events_and_times[otherbioid].title);
+                        console.log(events_and_times[otherbioid].start.toString(),
+                            events_and_times[otherbioid].end.toString());
+                        console.log("=======================\n");
+                        */
                     }
-                    /*
-                    console.log("New 2 new duplicates:");
-                    console.log("-----------------------");
-                    console.log(thisbioid, events_and_times[thisbioid].title);
-                    console.log(events_and_times[thisbioid].start.toString(),
-                        events_and_times[thisbioid].end.toString());
-                    console.log("-----------------------");
-                    console.log(otherbioid, events_and_times[otherbioid].title);
-                    console.log(events_and_times[otherbioid].start.toString(),
-                        events_and_times[otherbioid].end.toString());
-                    console.log("=======================\n");
-                    */
                 }
             }
         }
