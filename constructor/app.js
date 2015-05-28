@@ -665,7 +665,6 @@ function handleListOfParsedEvents(err, results) {
                 if (err) { console.error("Error in deduper!", err); return; }
                 throwAwayGoogleDupes(google_deletes, existing, function(err) {
                     if (err) { console.error("Deleting dupes already in Google failed!", err); return; }
-                    return;
                     updateCalendar(results, existing, function(err) {
                         if (err) { console.error("Updating the calendar failed", err); return; }
                         console.log("== Events present in the Google calendar but not present in sources: %d ==", deletedUpstream.length);
