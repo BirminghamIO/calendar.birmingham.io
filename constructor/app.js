@@ -184,13 +184,15 @@ function fetchICSFromEventBrite(cb) {
                     start.setTime(Date.parse(ebev.start.local));
                     end.setTime(Date.parse(ebev.end.local));
                     ev.setDate(start, end);
-                    var ven = ebev.venue.name;
-                    if (ebev.venue.address) {
-                        var addr = [ebev.venue.address.address_1, ebev.venue.address.address_2, ebev.venue.address.city, 
-                            ebev.venue.address.postal_code].filter(function(x) { return x; });
-                        ven += " (" + addr.join(", ") + ")";
+                    if(ebev.venue) {
+                        var ven = ebev.venue.name;
+                        if (ebev.venue.address) {
+                            var addr = [ebev.venue.address.address_1, ebev.venue.address.address_2, ebev.venue.address.city, 
+                                ebev.venue.address.postal_code].filter(function(x) { return x; });
+                            ven += " (" + addr.join(", ") + ")";
+                        }
+                        ev.setLocation(ven);
                     }
-                    ev.setLocation(ven);
                     ev.addProperty("DESCRIPTION", ebev.description.text + "\n" + ebev.url);
                     ev.addProperty("UID", ebev.id);
                 });
