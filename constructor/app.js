@@ -99,6 +99,7 @@ function fetchIcalUrlsFromMeetup(cb) {
             }
             else if (response.statusCode != 200) {
                 console.log("Meetup: HTTP error code:", response.statusCode);
+                console.log(body);
                 cb(null, []);
                 return;
             }
