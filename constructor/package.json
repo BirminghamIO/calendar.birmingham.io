@@ -22,7 +22,7 @@
     "ical": "~0.4.0",
     "icalendar": "^0.7.1",
     "moment": "^2.10.3",
-    "moment-range": "^2.0.2",
+    "moment-range": "~1.0.9",
     "readline": "0.0.8",
     "request": "~2.58.0",
     "time": "^0.11.3"
