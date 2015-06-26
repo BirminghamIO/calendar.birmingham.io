@@ -8,7 +8,33 @@ var ical = require("ical"), // parser
     moment = require("moment-range"),
     fs = require("fs"),
     time = require("time"),
-    Handlebars = require("handlebars");
+    Handlebars = require("handlebars"),
+    logger = require("js-logger"),
+    cliArgs = require("command-line-args");
+
+// Command line arguments
+var cli = cliArgs([
+    { name: "help", type: Boolean, alias: "h", description: "show usage" },
+    { name: "quiet", type: Boolean, alias: "q", description: "Only show errors" },
+    { name: "verbose", type: Boolean, alias: "v", description: "verbose (show warnings)"},
+    { name: "debug", type: Boolean, alias: "d", description: "Show all messages"}
+]);
+var argv = cli.parse();
+if(argv.help) {
+    console.log(cli.getUsage());
+    process.exit(0);
+}
+
+logger.useDefaults();
+logger.setLevel(logger.WARN); //default level (on stderr)
+if(argv.quiet)
+    logger.setLevel(logger.ERROR); // (on stderr)
+if(argv.verbose)
+    logger.setLevel(logger.INFO); // (on stdout)
+if(argv.debug) {
+    logger.setLevel(logger.DEBUG); // (on stdout)
+    console.log(argv);
+}
 
 /* Override the ical library's RRULE parser because Google Calendar doesn't
    want parsed rrules, it wants an unparsed string, so we stash the unparsed
@@ -69,7 +95,7 @@ function fetchIcalUrlsFromLocalFile(cb) {
     var fn = "explicitIcalUrls.json";
     fs.readFile(fn, function(err, data) {
         if (err) {
-            console.log("Failed to read local file of icals", fn);
+            logger.error("Failed to read local file of icals", fn);
             cb(null, []);
             return;
         }
@@ -77,7 +103,7 @@ function fetchIcalUrlsFromLocalFile(cb) {
         try {
             j = JSON.parse(data);
         } catch(e) {
-            console.log("Failed to read local file of icals", fn, e);
+            logger.error("Failed to read local file of icals", fn, e);
             cb(null, []);
             return;
         }
@@ -99,13 +125,13 @@ function fetchIcalUrlsFromMeetup(cb) {
         };
         var req = request(reqOptions, function(err, response, body) {
             if (err) {
-                console.log("Meetup: Error connecting:", err);
+                logger.error("Meetup: Error connecting:", err);
                 cb(null, []);
                 return;
             }
             else if (response.statusCode != 200) {
-                console.log("Meetup: HTTP error code:", response.statusCode);
-                console.log(body);
+                logger.error("Meetup: HTTP error code:", response.statusCode);
+                logger.info(body);
                 cb(null, []);
                 return;
             }
@@ -113,7 +139,7 @@ function fetchIcalUrlsFromMeetup(cb) {
                 try {
                     results = JSON.parse(body);
                     if (results.length === 0) {
-                        console.log("Meetup: Warning: no results received:");
+                        logger.warn("Meetup: Warning: no results received:");
                     }
                     urls = [];
                     for (var result in results) {
@@ -121,7 +147,7 @@ function fetchIcalUrlsFromMeetup(cb) {
                     }
                     cb(null, urls);
                 } catch(e) {
-                    console.log("Meetup: Error parsing JSON:", e);
+                    logger.error("Meetup: Error parsing JSON:", e);
                     cb(null, []);
                     return;
                 }
@@ -129,7 +155,7 @@ function fetchIcalUrlsFromMeetup(cb) {
         });
     }
     else {
-        console.log("Meetup: No MEETUP_URL and/or MEETUP_KEY found in config");
+        logger.warn("Meetup: No MEETUP_URL and/or MEETUP_KEY found in config");
         cb(null, []);
         return;
     }
@@ -140,7 +166,7 @@ function fetchICSFromEventBrite(cb) {
     var fn = "explicitEventBriteOrganisers.json";
     fs.readFile(fn, function(err, data) {
         if (err) {
-            console.log("Failed to read local file of EventBrite organisers", fn);
+            logger.warn("Failed to read local file of EventBrite organisers", fn);
             cb(null, []);
             return;
         }
@@ -148,7 +174,7 @@ function fetchICSFromEventBrite(cb) {
         try {
             j = JSON.parse(data);
         } catch(e) {
-            console.log("Failed to read local file of EventBrite organisers", fn, e);
+            logger.error("Failed to read local file of EventBrite organisers", fn, e);
             cb(null, []);
             return;
         }
@@ -168,8 +194,8 @@ function fetchICSFromEventBrite(cb) {
                     return cb(e);
                 }
                 if (!obj.events || !Array.isArray(obj.events)) {
-                    console.log("EventBrite: we didn't get any events");
-                    if (obj.error) console.log("EventBrite: We got an error response", obj.error, obj.error_description);
+                    logger.warn("EventBrite: we didn't get any events");
+                    if (obj.error) logger.error("EventBrite: We got an error response", obj.error, obj.error_description);
                     return cb(null, {
                         source: "eventbrite",
                         // something broke, so return an empty ical
@@ -211,7 +237,7 @@ var renderWebsite = function(events, done) {
     var ne = [];
     events.forEach(function(ev) {
         ev.start_parsed = moment(ev.start.dateTime);
-        console.log(ev.summary, ev.start_parsed.toString(), ev.start.dateTime);
+        logger.info(ev.summary, ev.start_parsed.toString(), ev.start.dateTime);
         ev.end_parsed = moment(ev.end.dateTime);
         ev.date_as_str = ev.start_parsed.format("ha") + "&ndash;" + ev.end_parsed.format("ha") + " " +
             ev.start_parsed.format("ddd Do MMM");
@@ -326,7 +352,7 @@ exports.createWebsite = function(done) {
         if (!err && ((new Date()).getTime() - stats.mtime.getTime()) < 3000000) {
             fs.readFile(CACHEFILE, function(err, data) {
                 if (err) {
-                    console.warn("Tried to read cachefile", CACHEFILE, "and couldn't because", err);
+                    logger.warn("Tried to read cachefile", CACHEFILE, "and couldn't because", err);
                     getEventsFromGCal(CACHEFILE, done);
                     return;
                 }
@@ -334,11 +360,11 @@ exports.createWebsite = function(done) {
                 try {
                     events = JSON.parse(data);
                 } catch(e) {
-                    console.warn("Cachefile was not valid JSON:", e);
+                    logger.warn("Cachefile was not valid JSON:", e);
                     getEventsFromGCal(CACHEFILE, done);
                     return;
                 }
-                console.log("Read events from cache");
+                logger.info("Read events from cache");
                 renderWebsite(events, done);
             });
         } else {
@@ -354,7 +380,7 @@ function deduper(existingUndeleted, results, callback) {
        they're often not even consistent about start and end times. So, we
        consider two events to be the same thing if they have the same name *and*
        they overlap in time. */
-    console.log("Dedupe checker");
+    logger.info("Dedupe checker");
     var events_and_times = {};
     for (var bioid in existingUndeleted) {
         events_and_times[bioid] = {
@@ -411,7 +437,7 @@ function deduper(existingUndeleted, results, callback) {
 
     for (var wy in events_and_times_by_week) {
         var this_events_and_times = events_and_times_by_week[wy];
-        console.log("Processing events in week", wy);
+        logger.info("Processing events in week", wy);
 
         for (var thisbioid in this_events_and_times) {
             var trn = moment().range(events_and_times[thisbioid].start,
@@ -614,7 +640,7 @@ function updateCalendar(results, existing, callback) {
             });
         }
     }, function(err, results) {
-        if (err) { console.log("Update/insert got an error (this shouldn't happen!)", err); return; }
+        if (err) { logger.warn("Update/insert got an error (this shouldn't happen!)", err); return; }
         var successes = [], failures = [], inserts = 0, updates = 0;
         results.forEach(function(r) {
             if (r.success) {
@@ -625,29 +651,31 @@ function updateCalendar(results, existing, callback) {
                 failures.push({event: r.event, err: r.err});
             }
         });
-        console.log("Successfully dealt with", successes.length, 
+        logger.info("Successfully dealt with", successes.length,
             "events (" + inserts, "new events,", updates, "existing events)");
-        console.log("Failed to deal with", failures.length, "events");
         if (failures.length > 0) {
-            console.log("== Failures ==");
+            logger.warn("Failed to deal with", failures.length, "events");
+            logger.warn("== Failures ==");
             failures.forEach(function(f) {
-                console.log("Event", f.event.summary, 
+                logger.warn("Event", f.event.summary,
                     "(" + f.event.uid + ", " + f.event.birminghamIOCalendarID + ")", 
                     JSON.stringify(f.err));
             });
+        } else {
+            logger.info("Failed to deal with", failures.length, "events");
         }
     });
 }
 
 function handleListOfParsedEvents(err, results) {
     if (err) { 
-        console.log("We failed to create a list of events", err);
+        logger.error("We failed to create a list of events", err);
         return;
     }
 
     // auth to the google calendar
     jwt.authorize(function(err, tokens) {
-        if (err) { console.log("Problem authorizing to Google", err); return; }
+        if (err) { logger.error("Problem authorizing to Google", err); return; }
 
         var respitems = [];
         function getListOfEvents(cb, nextPageToken) {
@@ -666,7 +694,7 @@ function handleListOfParsedEvents(err, results) {
 
         /* Get list of events */
         getListOfEvents(function(err, respitems) {
-            if (err) { console.log("Problem getting existing events", err); return; }
+            if (err) { logger.error("Problem getting existing events", err); return; }
             // Make a list of existing events keyed by uid, which is the unique key we created
             var existing = {};
             respitems.forEach(function(ev) { existing[ev.id] = ev; });
@@ -694,9 +722,9 @@ function handleListOfParsedEvents(err, results) {
                     if (err) { console.error("Deleting dupes already in Google failed!", err); return; }
                     updateCalendar(results, existing, function(err) {
                         if (err) { console.error("Updating the calendar failed", err); return; }
-                        console.log("== Events present in the Google calendar but not present in sources: %d ==", deletedUpstream.length);
+                        logger.info("== Events present in the Google calendar but not present in sources: %d ==", deletedUpstream.length);
                         deletedUpstream.forEach(function(duev) {
-                            console.log(duev.summary + " (" + duev.id + ")", duev.start.dateTime);
+                            logger.info(duev.summary + " (" + duev.id + ")", duev.start.dateTime);
                         });
                     });
                 });
@@ -707,7 +735,7 @@ function handleListOfParsedEvents(err, results) {
 
 function processICSData(err, results) {
     if (err) { 
-        console.log("We failed to fetch any ics URLs", err);
+        logger.warn("We failed to fetch any ics URLs", err);
         return;
     }
     // parse them all into ICS structures
@@ -741,7 +769,7 @@ function processICSData(err, results) {
                         ev.birminghamIOCalendarID = "bio" + icsbodyobj.source + shasum.digest('hex');
                         events.push(ev);
                     } catch(e) {
-                        console.log("Missing ev.uid", e, ev);
+                        logger.warn("Missing ev.uid", e, ev);
                     }
                 }
             }
@@ -752,7 +780,7 @@ function processICSData(err, results) {
 
 function processICSURLs(err, results) {
     if (err) {
-        console.log("We failed to get a list of ics URLs", err);
+        logger.warn("We failed to get a list of ics URLs", err);
         return;
     }
     // flatten results list and fetch them all
@@ -762,7 +790,7 @@ function processICSURLs(err, results) {
         if (icsurlobj.url) { // we were given back a URL, so fetch ICS data from it
             request(icsurlobj.url, function(err, response, body) {
                 if (err) { 
-                    console.log("Failed to fetch URL", icsurlobj.url, err);
+                    logger.warn("Failed to fetch URL", icsurlobj.url, err);
                     body = null;
                 }
                 // sanitise source name. Shouldn't need this, because people are
