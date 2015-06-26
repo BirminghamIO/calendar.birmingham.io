@@ -91,7 +91,13 @@ function fetchIcalUrlsFromLocalFile(cb) {
 
 function fetchIcalUrlsFromMeetup(cb) {
     if(MEETUP_URL && MEETUP_KEY) {
-        var req = request(MEETUP_URL + MEETUP_KEY, function(err, response, body) {
+        var reqOptions = {
+            url: MEETUP_URL + MEETUP_KEY,
+            headers: {
+                Accept: "application/json"
+            }
+        };
+        var req = request(reqOptions, function(err, response, body) {
             if (err) {
                 console.log("Meetup: Error connecting:", err);
                 cb(null, []);
