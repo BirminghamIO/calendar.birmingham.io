@@ -20,6 +20,11 @@
         "notes": "Manually created calendar for Creative Networks in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_j54gsl84m9d4150pglmfj65mj8%40group.calendar.google.com&ctz=Europe/London"
     },
     {
+        "url": "https://www.eventbrite.co.uk/calendar.ics?eid=17499628861&calendar=ical&date=None",
+        "source": "flossuk",
+        "notes": "Barcamp Birmingham 2015.  Link to this one-off event, because the Eventbrite page lists events UK-wide."
+    },
+    {
         "url": "http://www.innovationbham.com/events/?ical=1&tribe_display=list",
         "source": "innovationbham",
         "notes": "Innovation Birmingham, always says invalid date on one entry at this point"
