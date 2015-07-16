@@ -60,14 +60,20 @@ var jwt = new googleapis.auth.JWT(
         ['https://www.googleapis.com/auth/calendar']);
 var gcal = googleapis.calendar('v3');
 
+/* Birmingham */
+var LOCATION_LAT = "52.483056";
+var LOCATION_LONG = "-1.893611";
+var LOCATION_RADIUS = "5"; /* in miles */
+
 /* Meetup */
 var MEETUP_KEY = config.MEETUPKEY;
 var MEETUP_URL = "https://api.meetup.com/find/groups?" +
                     "&sign=true" +
                     "&photo-host=public" +
                     "&category=34" + /* Technology */
-                    "&lat=52.483056&lon=-1.893611" + /* Birmingham */
-                    "&radius=5" + /* radius (in miles) */
+                    "&lat=" + LOCATION_LAT +
+                    "&lon=" + LOCATION_LONG +
+                    "&radius=" + LOCATION_RADIUS +
                     "&page=4000" + /* results per page */
                     "&key=";
 
@@ -162,7 +168,13 @@ function fetchIcalUrlsFromMeetup(cb) {
 }
 
 function fetchICSFromEventBrite(cb) {
-    var evurl = "https://www.eventbriteapi.com/v3/events/search/?organizer.id=ORG&token=" + config.EVENTBRITE_TOKEN + "&format=json";
+    var evurl = "https://www.eventbriteapi.com/v3/events/search/?" +
+        "organizer.id=ORG" +
+        "&token=" + config.EVENTBRITE_TOKEN +
+        "&location.latitude=" + LOCATION_LAT +
+        "&location.longitude=" + LOCATION_LONG +
+        "&location.within=" + LOCATION_RADIUS + "mi" +
+        "&format=json";
     var fn = "explicitEventBriteOrganisers.json";
     fs.readFile(fn, function(err, data) {
         if (err) {
