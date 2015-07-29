@@ -219,8 +219,8 @@ function fetchICSFromEventBrite(cb) {
                     var ev = ics.addComponent('VEVENT');
                     ev.setSummary(ebev.name.text);
                     var start = new Date(), end = new Date();
-                    start.setTime(Date.parse(ebev.start.local));
-                    end.setTime(Date.parse(ebev.end.local));
+                    start.setTime(Date.parse(ebev.start.utc));
+                    end.setTime(Date.parse(ebev.end.utc));
                     ev.setDate(start, end);
                     if(ebev.venue) {
                         var ven = ebev.venue.name;
