@@ -53,6 +53,12 @@
         "url": "https://www.google.com/calendar/ical/hbb0gijc025n1kvlgaigscfmjo%40group.calendar.google.com/public/basic.ics",
         "source": "brumjs",
         "notes": "Brum.js - Birmingham JavaScript user group."
+    },
+    {
+        "url": "http://www.eventbrite.co.uk/e/brumme-launch-party-tickets-17953706018",
+        "source": "impacthub",
+        "notes": "'BrumMe' is an event celebrating and recognising the aspiring creative, tech and digital startup scenes that are growing in the city."
     }
+
     
 ]
