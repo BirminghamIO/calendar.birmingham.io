@@ -53,6 +53,10 @@
         "url": "https://www.google.com/calendar/ical/hbb0gijc025n1kvlgaigscfmjo%40group.calendar.google.com/public/basic.ics",
         "source": "brumjs",
         "notes": "Brum.js - Birmingham JavaScript user group."
+    },
+    {
+        "url": "http://birmingham.impacthub.net/event/brumme-with-virgin-startup-and-bes//ical",
+        "source": "impacthubbrumme",
+        "notes": "Brum.me - an event celebrating and recognising the aspiring creative, tech and digital startup scenes that are growing in the city."
     }
-    
 ]
