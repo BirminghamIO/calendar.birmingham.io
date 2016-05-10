@@ -53,5 +53,10 @@
         "url": "https://www.google.com/calendar/ical/hbb0gijc025n1kvlgaigscfmjo%40group.calendar.google.com/public/basic.ics",
         "source": "brumjs",
         "notes": "Brum.js - Birmingham JavaScript user group."
+    },
+    {
+        "url": "https://api.meetup.com/Birmingham-Algorithms-Study-Group/upcoming.ical",
+        "source": "birminghamalgorithms",
+        "notes": "Birmingham Algorithms Study Group - Every month we explore an algorithmic puzzle to improve our Javascript. All levels of JS experience welcome!"
     }
 ]
