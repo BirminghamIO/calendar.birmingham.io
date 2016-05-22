@@ -53,5 +53,10 @@
         "url": "https://www.google.com/calendar/ical/hbb0gijc025n1kvlgaigscfmjo%40group.calendar.google.com/public/basic.ics",
         "source": "brumjs",
         "notes": "Brum.js - Birmingham JavaScript user group."
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/siliconcanal.co.uk_u80vtml67gcacsgt72p61gkavg@group.calendar.google.com/public/basic.ics",
+        "source": "siliconcanalwebsite",
+        "notes": "Silicon Canal user event submissions"
     }
 ]
