@@ -63,5 +63,10 @@
         "url": "https://calendar.google.com/calendar/ical/talis.com_e65e0bvuol73o8k5gtgsmsbhu4%40group.calendar.google.com/public/basic.ics",
         "source": "talis",
         "notes": "Codelicious - Code, Food and Networking"
+    },
+    {
+        "url": "https://homebrewbrum.co.uk/calendar.ics",
+        "source": "homebrewbrum",
+        "notes": "Homebrew Website Club Birmingham"
     }
 ]
