@@ -18,7 +18,7 @@
   "dependencies": {
     "async": "~1.2.1",
     "googleapis": "~2.0.5",
-    "handlebars": "^3.0.3",
+    "handlebars": "^4.0.5",
     "ical": "~0.4.0",
     "icalendar": "^0.7.1",
     "moment": "^2.10.3",
