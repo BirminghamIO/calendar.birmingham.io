@@ -78,7 +78,19 @@ var LOCATION_RADIUS = "25"; /* in miles */
 
 /* Meetup */
 var MEETUP_KEY = config.MEETUPKEY;
-var MEETUP_URL = "https://api.meetup.com/find/groups?" +
+var MEETUP_TECH_TOPICS = [
+    {"id": 108403, "name": "Technology Startups", "urlkey": "technology-startups"},
+    {"id": 10579, "name": "Technology", "urlkey": "technology"},
+    {"id": 7860, "name": "Technical Writers", "urlkey": "techwriter"},
+    {"id": 57883, "name": "High-Tech Ventures", "urlkey": "high-tech-ventures"},
+    {"id": 43223, "name": "Tech Savvy Entrepreneurs", "urlkey": "tech-savvy-entrepreneurs"},
+    {"id": 35305, "name": "high tech", "urlkey": "high-tech"},
+    {"id": 26064, "name": "Immersive Tech", "urlkey": "immersive-tech"},
+    {"id": 33947, "name": "LGBT High-Tech Workers", "urlkey": "lgbt-high-tech-workers"},
+    {"id": 26065, "name": "Gesture Tech", "urlkey": "gesture-tech"}
+];
+var MEETUP_TECH_TOPIC_IDS = MEETUP_TECH_TOPICS.map(function(t) { return t["id"].toString(); }).join(",");
+var MEETUP_URL_BY_CATEGORY = "https://api.meetup.com/find/groups?" +
                     "&sign=true" +
                     "&photo-host=public" +
                     "&category=34" + /* Technology */
@@ -87,6 +99,16 @@ var MEETUP_URL = "https://api.meetup.com/find/groups?" +
                     "&radius=" + LOCATION_RADIUS +
                     "&page=4000" + /* results per page */
                     "&key=";
+var MEETUP_URL_BY_TOPICS = "https://api.meetup.com/find/groups?" +
+                    "&sign=true" +
+                    "&photo-host=public" +
+                    "&topic_id=" + MEETUP_TECH_TOPIC_IDS +
+                    "&lat=" + LOCATION_LAT +
+                    "&lon=" + LOCATION_LONG +
+                    "&radius=" + LOCATION_RADIUS +
+                    "&page=4000" + /* results per page */
+                    "&key=";
+
 
 var tz = new time.Date();
 var TIMEZONE = tz.getTimezone();
@@ -133,48 +155,62 @@ function fetchIcalUrlsFromLocalFile(cb) {
     });
 }
 
+function fetchMeetupByURL(url, cb) {
+    var reqOptions = {url: url, headers: { Accept: "application/json" } };
+    var req = request(reqOptions, function(err, response, body) {
+        if (err) {
+            logger.error("Meetup: Error connecting:", err);
+            cb(null, []);
+            return;
+        }
+        else if (response.statusCode != 200) {
+            logger.error("Meetup: HTTP error code:", response.statusCode);
+            logger.info(body);
+            cb(null, []);
+            return;
+        }
+        else {
+            try {
+                results = JSON.parse(body);
+                if (results.length === 0) {
+                    logger.warn("Meetup: Warning: no results received:");
+                }
+                cb(null, results);
+            } catch(e) {
+                logger.error("Meetup: Error parsing JSON:", e);
+                cb(null, []);
+                return;
+            }
+        }
+    });
+}
+
 function fetchIcalUrlsFromMeetup(cb) {
     logger.info("Searching Meetup API for matching events");
-    if(MEETUP_URL && MEETUP_KEY) {
-        var reqOptions = {
-            url: MEETUP_URL + MEETUP_KEY,
-            headers: {
-                Accept: "application/json"
+    if (MEETUP_KEY) {
+        var links = {};
+        logger.info("Searching Meetup API for matching events by category");
+        fetchMeetupByURL(MEETUP_URL_BY_CATEGORY + MEETUP_KEY, function(err, results) {
+            if (!err) {
+                for (var result in results) { links[results[result].link] = ""; }
+                logger.info("Got this many meetup results by category", results.length);
             }
-        };
-        var req = request(reqOptions, function(err, response, body) {
-            if (err) {
-                logger.error("Meetup: Error connecting:", err);
-                cb(null, []);
-                return;
-            }
-            else if (response.statusCode != 200) {
-                logger.error("Meetup: HTTP error code:", response.statusCode);
-                logger.info(body);
-                cb(null, []);
-                return;
-            }
-            else {
-                try {
-                    results = JSON.parse(body);
-                    if (results.length === 0) {
-                        logger.warn("Meetup: Warning: no results received:");
-                    }
-                    urls = [];
-                    for (var result in results) {
-                        urls.push({source: "meetup", url: results[result].link + "events/ical/"});
-                    }
-                    cb(null, urls);
-                } catch(e) {
-                    logger.error("Meetup: Error parsing JSON:", e);
-                    cb(null, []);
-                    return;
+            logger.info("Searching Meetup API for matching events by topic");
+            fetchMeetupByURL(MEETUP_URL_BY_TOPICS + MEETUP_KEY, function(err, results) {
+                if (!err) {
+                    for (var result in results) { links[results[result].link] = ""; }
+                    logger.info("Got this many meetup results by topic", results.length);
                 }
-            }
-        });
-    }
-    else {
-        logger.warn("Meetup: No MEETUP_URL and/or MEETUP_KEY found in config");
+                var urls = [];
+                for (var l in links) {
+                    urls.push({source: "meetup", url: results[result].link + "events/ical/"});
+                }
+                logger.info("Got this many total meetup results (some may have been dupes between category and topic)", urls.length);
+                cb(null, urls);
+            })
+        })
+    } else {
+        logger.warn("Meetup: No MEETUP_KEY found in config");
         cb(null, []);
         return;
     }
