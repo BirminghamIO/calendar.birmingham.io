@@ -68,5 +68,11 @@
         "url": "http://attending.io/events/ixdabirmingham1.ics",
         "source": "ixdabirmingham",
         "notes": "Interaction Design Association (IxDA) chapter for Birmingham, UK (@IxDABirmingham)"
+    },
+    {
+        "url": "http://api.meetup.com/Worcester-Source-Meetup/upcoming.ical",
+        "source": "Worcester Source",
+        "notes": "A group for anyone interested in software development, DevOps, and technology in general."
     }
+
 ]
