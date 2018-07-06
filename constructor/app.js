@@ -17,13 +17,17 @@ var cli = cliArgs([
     { name: "help", type: Boolean, alias: "h", description: "show usage" },
     { name: "quiet", type: Boolean, alias: "q", description: "Only show errors" },
     { name: "verbose", type: Boolean, alias: "v", description: "verbose (show warnings)"},
-    { name: "debug", type: Boolean, alias: "d", description: "Show all messages"}
+    { name: "debug", type: Boolean, alias: "d", description: "Show all messages"},
+    { name: "dryrun", type: Boolean, alias: "r",
+        description: "Dry run: fetch all sources and print results, but do not update the actual calendar"}
 ]);
 var argv = cli.parse();
 if(argv.help) {
     console.log(cli.getUsage());
     process.exit(0);
 }
+
+var IS_DRY_RUN = false;
 
 logger.useDefaults();
 logger.setLevel(logger.WARN); //default level (on stderr)
@@ -34,6 +38,9 @@ if(argv.verbose)
 if(argv.debug) {
     logger.setLevel(logger.DEBUG); // (on stdout)
     console.log(argv);
+}
+if (argv.dryrun) {
+    IS_DRY_RUN = true;
 }
 
 /* Override the ical library's RRULE parser because Google Calendar doesn't
@@ -99,6 +106,7 @@ var TIMEZONE = tz.getTimezone();
 
 function fetchIcalUrlsFromLocalFile(cb) {
     var fn = "explicitIcalUrls.json";
+    logger.info("Reading local file of iCals: " + fn);
     fs.readFile(fn, function(err, data) {
         if (err) {
             logger.error("Failed to read local file of icals", fn);
@@ -168,6 +176,7 @@ function fetchIcalUrlsFromMeetup(cb) {
 }
 
 function fetchICSFromEventBrite(cb) {
+    logger.info("Searching Eventbrite for matching events");
     var evurl = "https://www.eventbriteapi.com/v3/events/search/?" +
         "organizer.id=ORG" +
         "&token=" + config.EVENTBRITE_TOKEN +
@@ -449,7 +458,7 @@ function deduper(existingUndeleted, results, callback) {
 
     for (var wy in events_and_times_by_week) {
         var this_events_and_times = events_and_times_by_week[wy];
-        logger.info("Processing events in week", wy);
+        logger.debug("Processing events in week", wy);
 
         for (var thisbioid in this_events_and_times) {
             var trn = moment().range(events_and_times[thisbioid].start,
@@ -684,6 +693,7 @@ function handleListOfParsedEvents(err, results) {
         logger.error("We failed to create a list of events", err);
         return;
     }
+    logger.info("Now processing " + results.length + " events");
 
     // auth to the google calendar
     jwt.authorize(function(err, tokens) {
@@ -730,6 +740,13 @@ function handleListOfParsedEvents(err, results) {
 
             deduper(existingUndeleted, results, function(err, results, google_deletes) {
                 if (err) { console.error("Error in deduper!", err); return; }
+                if (IS_DRY_RUN) {
+                    logger.info("=== DRY RUN ONLY: aborting ===");
+
+                    /* add debug code here */
+
+                    return;
+                }
                 throwAwayGoogleDupes(google_deletes, existing, function(err) {
                     if (err) { console.error("Deleting dupes already in Google failed!", err); return; }
                     updateCalendar(results, existing, function(err) {
@@ -751,6 +768,7 @@ function processICSData(err, results) {
         return;
     }
     // parse them all into ICS structures
+    logger.info("Now processing " + results.length + " ICS datasets");
     async.concat(results, function(icsbodyobj, cb) {
         var events = [];
         if (icsbodyobj.body) {
@@ -798,6 +816,7 @@ function processICSURLs(err, results) {
     // flatten results list and fetch them all
     var icsurls = [];
     icsurls = icsurls.concat.apply(icsurls, results);
+    logger.info("Now processing " + icsurls.length + " ICS URLs");
     async.map(icsurls, function(icsurlobj, cb) {
         if (icsurlobj.url) { // we were given back a URL, so fetch ICS data from it
             request(icsurlobj.url, function(err, response, body) {
