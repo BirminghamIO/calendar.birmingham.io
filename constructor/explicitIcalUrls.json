@@ -68,5 +68,10 @@
         "url": "https://api.meetup.com/Worcester-Source-Meetup/upcoming.ical",
         "source": "Worcester Source",
         "notes": "A group for anyone interested in software development, DevOps, and technology in general."
+    },
+    {
+        "url": "https://calendar.google.com/calendar/ical/limeblast.co.uk_8ij70sdkvphvknaul9cc2ulb50%40group.calendar.google.com/public/basic.ics",
+        "source": "birminghamiomanual",
+        "notes": "The Birmingham.IO one-off manual events calendar, for events which do not have their own iCal feed, and which can be edited by the b.io admin team"
     }
 ]
