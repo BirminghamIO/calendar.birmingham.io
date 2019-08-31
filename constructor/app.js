@@ -10,7 +10,8 @@ var ical = require("ical"), // parser
     time = require("time"),
     Handlebars = require("handlebars"),
     logger = require("js-logger"),
-    cliArgs = require("command-line-args");
+    cliArgs = require("command-line-args"),
+    cheerio = require("cheerio");
 
 // Command line arguments
 var cli = cliArgs([
@@ -185,6 +186,7 @@ function fetchMeetupByURL(url, cb) {
     });
 }
 
+/* note: this is never called now, since meetup locked off their API to pro accounts only */
 function fetchIcalUrlsFromMeetup(cb) {
     logger.info("Searching Meetup API for matching events");
     if (MEETUP_KEY) {
@@ -214,6 +216,42 @@ function fetchIcalUrlsFromMeetup(cb) {
         cb(null, []);
         return;
     }
+}
+
+function scrapeIcalUrlsFromMeetup(cb) {
+    var base = "https://www.meetup.com/find/events/tech/"
+    var params = {
+        "allMeetups": "true",
+        "radius": "2",
+        "userFreeform": "Birmingham, United Kingdom",
+        "mcName": "Birmingham, England, GB",
+        "sort": "recommended"
+    };
+    var icsurls = [];
+    request({url: base, qs: params}, function(err, response, body) {
+        var $ = cheerio.load(body);
+        $('[itemtype="http://data-vocabulary.org/Event"]').each(function(idx, evel) {
+            var dt = $('time[itemprop=startDate]', evel);
+            if (dt.length > 0) {
+                // walk up the tree until we find the event link
+                var href;
+                var pointer = dt[0];
+                while (true) {
+                    if (!pointer) break;
+                    if (pointer.name.toLowerCase() == "body") break;
+                    if (pointer.attribs["href"]) {
+                        href = pointer.attribs["href"];
+                        break;
+                    }
+                    pointer = pointer.parentNode;
+                }
+                if (href) {
+                    icsurls.push({source: "meetup", url: href + "ical/t.ics"});
+                }
+            }
+        })
+        cb(null, icsurls);
+    })
 }
 
 function fetchICSFromEventBrite(cb) {
@@ -998,10 +1036,12 @@ exports.mainJob = function mainJob() {
     // first, get a list of ics urls from various places
     async.parallel([
         fetchIcalUrlsFromLocalFile,
-        fetchIcalUrlsFromMeetup,
+        scrapeIcalUrlsFromMeetup,
         fetchICSFromEventBrite
     ], processICSURLs);
 };
+
+exports.scrapeIcalUrlsFromMeetup = scrapeIcalUrlsFromMeetup;
 
 if (require.main === module) {
     exports.mainJob();
