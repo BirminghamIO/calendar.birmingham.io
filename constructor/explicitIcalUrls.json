@@ -20,11 +20,6 @@
         "notes": "Manually created calendar for Creative Networks in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_j54gsl84m9d4150pglmfj65mj8%40group.calendar.google.com&ctz=Europe/London"
     },
     {
-        "url": "http://www.innovationbham.com/events/?ical=1&tribe_display=list",
-        "source": "innovationbham",
-        "notes": "Innovation Birmingham, always says invalid date on one entry at this point"
-    },
-    {
         "url": "https://www.google.com/calendar/ical/limeblast.co.uk_dtbevmpf6od43s3g43onpp7j6s%40group.calendar.google.com/public/basic.ics",
         "source": "ucbirminghamusergroup",
         "notes": "Manually created calendar for UC Birmingham User Group in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_dtbevmpf6od43s3g43onpp7j6s%40group.calendar.google.com&ctz=Europe/London"
@@ -60,13 +55,18 @@
         "notes": "Codelicious - Code, Food and Networking"
     },
     {
-        "url": "https://homebrewbrum.co.uk/calendar.ics",
-        "source": "homebrewbrum",
-        "notes": "Homebrew Website Club Birmingham"
-    },
-    {
-        "url": "http://attending.io/events/ixdabirmingham1.ics",
+        "url": "https://attending.io/events/ixdabirmingham1.ics",
         "source": "ixdabirmingham",
         "notes": "Interaction Design Association (IxDA) chapter for Birmingham, UK (@IxDABirmingham)"
+    },
+    {
+        "url": "https://api.meetup.com/Worcester-Source-Meetup/upcoming.ical",
+        "source": "Worcester Source",
+        "notes": "A group for anyone interested in software development, DevOps, and technology in general."
+    },
+    {
+        "url": "https://calendar.google.com/calendar/ical/limeblast.co.uk_8ij70sdkvphvknaul9cc2ulb50%40group.calendar.google.com/public/basic.ics",
+        "source": "birminghamiomanual",
+        "notes": "The Birmingham.IO one-off manual events calendar, for events which do not have their own iCal feed, and which can be edited by the b.io admin team"
     }
 ]

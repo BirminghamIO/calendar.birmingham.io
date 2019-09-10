@@ -11,7 +11,7 @@
     "url": "https://github.com/BirminghamIO/calendar"
   },
   "author": "Stuart Langridge <sil@kryogenix.org>",
-  "license": "Apache",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/BirminghamIO/calendar/issues"
   },

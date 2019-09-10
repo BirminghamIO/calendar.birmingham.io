@@ -912,6 +912,7 @@ function handleListOfParsedEvents(err, calendarId, results, done) {
             deduper(existingUndeleted, results, function(err, results, google_deletes) {
                 if (err) { console.error("Error in deduper!", err); return; }
 
+
                 if (IS_DRY_RUN) {
                     logger.info("=== DRY RUN ONLY: aborting ===");
 
@@ -924,6 +925,7 @@ function handleListOfParsedEvents(err, calendarId, results, done) {
                     if (err) { console.error("Deleting dupes already in Google failed!", err); return done(); }
                     updateCalendar(results, existing, calendarId, function(err) {
                         if (err) { console.error("Updating the calendar failed", err); return done(); }
+
                         logger.info("== Events present in the Google calendar but not present in sources: %d ==", deletedUpstream.length);
                         deletedUpstream.forEach(function(duev) {
                             logger.info(duev.summary + " (" + duev.id + ")", duev.start.dateTime);
