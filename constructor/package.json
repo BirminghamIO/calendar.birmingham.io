@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "async": "~1.2.1",
+    "cheerio": "^1.0.0-rc.3",
     "googleapis": "~2.0.5",
     "handlebars": "^4.0.5",
     "ical": "~0.4.0",
@@ -25,7 +26,7 @@
     "moment-range": "~1.0.9",
     "readline": "0.0.8",
     "request": "~2.58.0",
-    "time": "^0.11.3",
+    "time": "^0.11.4",
     "js-logger": "~1.0.0",
     "command-line-args": "~0.5.9"
   },
