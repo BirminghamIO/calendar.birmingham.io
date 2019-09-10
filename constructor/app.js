@@ -10,7 +10,8 @@ var ical = require("ical"), // parser
     time = require("time"),
     Handlebars = require("handlebars"),
     logger = require("js-logger"),
-    cliArgs = require("command-line-args");
+    cliArgs = require("command-line-args"),
+    cheerio = require("cheerio");
 
 // Command line arguments
 var cli = cliArgs([
@@ -59,7 +60,11 @@ ical.objectHandlers.RRULE = function(val, params, curr, stack, line) {
 /* Google */
 var SERVICE_ACCOUNT_EMAIL = '721976846481-1s5altpg8afuc4opnlr13nua86hg0ul9@developer.gserviceaccount.com';
 var SERVICE_ACCOUNT_KEY_FILE = './key.pem';
-var GOOGLE_CALENDAR_ID = 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com';
+var GOOGLE_CALENDAR_IDS = {
+    "5m": {cal: 'movdt8poi0t3gfedfd80u1kcak@group.calendar.google.com', distance: 5},
+    "10m": {cal: 'limeblast.co.uk_grdcft7idq3naeqhss07hqdqts@group.calendar.google.com', distance: 10},
+    "25m": {cal: 'limeblast.co.uk_h4b6nrsgt3cv3e88aibcul26dk@group.calendar.google.com', distance: 25}
+};
 var jwt = new googleapis.auth.JWT(
         SERVICE_ACCOUNT_EMAIL,
         SERVICE_ACCOUNT_KEY_FILE,
@@ -70,11 +75,23 @@ var gcal = googleapis.calendar('v3');
 /* Birmingham */
 var LOCATION_LAT = "52.483056";
 var LOCATION_LONG = "-1.893611";
-var LOCATION_RADIUS = "5"; /* in miles */
+var LOCATION_RADIUS = "25"; /* in miles */
 
 /* Meetup */
 var MEETUP_KEY = config.MEETUPKEY;
-var MEETUP_URL = "https://api.meetup.com/find/groups?" +
+var MEETUP_TECH_TOPICS = [
+    {"id": 108403, "name": "Technology Startups", "urlkey": "technology-startups"},
+    {"id": 10579, "name": "Technology", "urlkey": "technology"},
+    {"id": 7860, "name": "Technical Writers", "urlkey": "techwriter"},
+    {"id": 57883, "name": "High-Tech Ventures", "urlkey": "high-tech-ventures"},
+    {"id": 43223, "name": "Tech Savvy Entrepreneurs", "urlkey": "tech-savvy-entrepreneurs"},
+    {"id": 35305, "name": "high tech", "urlkey": "high-tech"},
+    {"id": 26064, "name": "Immersive Tech", "urlkey": "immersive-tech"},
+    {"id": 33947, "name": "LGBT High-Tech Workers", "urlkey": "lgbt-high-tech-workers"},
+    {"id": 26065, "name": "Gesture Tech", "urlkey": "gesture-tech"}
+];
+var MEETUP_TECH_TOPIC_IDS = MEETUP_TECH_TOPICS.map(function(t) { return t["id"].toString(); }).join(",");
+var MEETUP_URL_BY_CATEGORY = "https://api.meetup.com/find/groups?" +
                     "&sign=true" +
                     "&photo-host=public" +
                     "&category=34" + /* Technology */
@@ -83,6 +100,16 @@ var MEETUP_URL = "https://api.meetup.com/find/groups?" +
                     "&radius=" + LOCATION_RADIUS +
                     "&page=4000" + /* results per page */
                     "&key=";
+var MEETUP_URL_BY_TOPICS = "https://api.meetup.com/find/groups?" +
+                    "&sign=true" +
+                    "&photo-host=public" +
+                    "&topic_id=" + MEETUP_TECH_TOPIC_IDS +
+                    "&lat=" + LOCATION_LAT +
+                    "&lon=" + LOCATION_LONG +
+                    "&radius=" + LOCATION_RADIUS +
+                    "&page=4000" + /* results per page */
+                    "&key=";
+
 
 var tz = new time.Date();
 var TIMEZONE = tz.getTimezone();
@@ -129,50 +156,102 @@ function fetchIcalUrlsFromLocalFile(cb) {
     });
 }
 
-function fetchIcalUrlsFromMeetup(cb) {
-    if(MEETUP_URL && MEETUP_KEY) {
-        var reqOptions = {
-            url: MEETUP_URL + MEETUP_KEY,
-            headers: {
-                Accept: "application/json"
-            }
-        };
-        var req = request(reqOptions, function(err, response, body) {
-            if (err) {
-                logger.error("Meetup: Error connecting:", err);
-                cb(null, []);
-                return;
-            }
-            else if (response.statusCode != 200) {
-                logger.error("Meetup: HTTP error code:", response.statusCode);
-                logger.info(body);
-                cb(null, []);
-                return;
-            }
-            else {
-                try {
-                    results = JSON.parse(body);
-                    if (results.length === 0) {
-                        logger.warn("Meetup: Warning: no results received:");
-                    }
-                    urls = [];
-                    for (var result in results) {
-                        urls.push({source: "meetup", url: results[result].link + "events/ical/"});
-                    }
-                    cb(null, urls);
-                } catch(e) {
-                    logger.error("Meetup: Error parsing JSON:", e);
-                    cb(null, []);
-                    return;
+function fetchMeetupByURL(url, cb) {
+    var reqOptions = {url: url, headers: { Accept: "application/json" } };
+    var req = request(reqOptions, function(err, response, body) {
+        if (err) {
+            logger.error("Meetup: Error connecting:", err);
+            cb(null, []);
+            return;
+        }
+        else if (response.statusCode != 200) {
+            logger.error("Meetup: HTTP error code:", response.statusCode);
+            logger.info(body);
+            cb(null, []);
+            return;
+        }
+        else {
+            try {
+                results = JSON.parse(body);
+                if (results.length === 0) {
+                    logger.warn("Meetup: Warning: no results received:");
                 }
+                cb(null, results);
+            } catch(e) {
+                logger.error("Meetup: Error parsing JSON:", e);
+                cb(null, []);
+                return;
             }
-        });
-    }
-    else {
-        logger.warn("Meetup: No MEETUP_URL and/or MEETUP_KEY found in config");
+        }
+    });
+}
+
+/* note: this is never called now, since meetup locked off their API to pro accounts only */
+function fetchIcalUrlsFromMeetup(cb) {
+    logger.info("Searching Meetup API for matching events");
+    if (MEETUP_KEY) {
+        var links = {};
+        logger.info("Searching Meetup API for matching events by category");
+        fetchMeetupByURL(MEETUP_URL_BY_CATEGORY + MEETUP_KEY, function(err, results) {
+            if (!err) {
+                for (var result in results) { links[results[result].link] = ""; }
+                logger.info("Got this many meetup results by category", results.length);
+            }
+            logger.info("Searching Meetup API for matching events by topic");
+            fetchMeetupByURL(MEETUP_URL_BY_TOPICS + MEETUP_KEY, function(err, results) {
+                if (!err) {
+                    for (var result in results) { links[results[result].link] = ""; }
+                    logger.info("Got this many meetup results by topic", results.length);
+                }
+                var urls = [];
+                for (var l in links) {
+                    urls.push({source: "meetup", url: results[result].link + "events/ical/"});
+                }
+                logger.info("Got this many total meetup results (some may have been dupes between category and topic)", urls.length);
+                cb(null, urls);
+            })
+        })
+    } else {
+        logger.warn("Meetup: No MEETUP_KEY found in config");
         cb(null, []);
         return;
     }
+}
+
+function scrapeIcalUrlsFromMeetup(cb) {
+    var base = "https://www.meetup.com/find/events/tech/"
+    var params = {
+        "allMeetups": "true",
+        "radius": "2",
+        "userFreeform": "Birmingham, United Kingdom",
+        "mcName": "Birmingham, England, GB",
+        "sort": "recommended"
+    };
+    var icsurls = [];
+    request({url: base, qs: params}, function(err, response, body) {
+        var $ = cheerio.load(body);
+        $('[itemtype="http://data-vocabulary.org/Event"]').each(function(idx, evel) {
+            var dt = $('time[itemprop=startDate]', evel);
+            if (dt.length > 0) {
+                // walk up the tree until we find the event link
+                var href;
+                var pointer = dt[0];
+                while (true) {
+                    if (!pointer) break;
+                    if (pointer.name.toLowerCase() == "body") break;
+                    if (pointer.attribs["href"]) {
+                        href = pointer.attribs["href"];
+                        break;
+                    }
+                    pointer = pointer.parentNode;
+                }
+                if (href) {
+                    icsurls.push({source: "meetup", url: href + "ical/t.ics"});
+                }
+            }
+        })
+        cb(null, icsurls);
+    })
 }
 
 function fetchICSFromEventBrite(cb) {
@@ -253,7 +332,7 @@ function fetchICSFromEventBrite(cb) {
     });
 }
 
-var renderWebsite = function(events, done) {
+var renderWebsite = function(events, distance, done) {
     var now = moment();
     var ne = [];
     events.forEach(function(ev) {
@@ -322,7 +401,7 @@ var renderWebsite = function(events, done) {
             }).forEach(function(ev) {
                 tw.push(ev.summary + " | " + ev.date_as_str);
             });
-        fs.writeFile("../website/index.html", idxhtml, function(err) {
+        fs.writeFile("../website/index-" + distance + ".html", idxhtml, function(err) {
             if (err) { return done(err); }
             done();
         });
@@ -330,7 +409,7 @@ var renderWebsite = function(events, done) {
 
 };
 
-var getEventsFromGCal = function(CACHEFILE, done) {
+var getEventsFromGCal = function(CACHEFILE, calendarId, distance, done) {
     jwt.authorize(function(err, tokens) {
         if (err) { return done(err); }
         var gcal = googleapis.calendar('v3');
@@ -340,7 +419,7 @@ var getEventsFromGCal = function(CACHEFILE, done) {
         var fortnight_away = moment().add(14, 'days');
 
         function getListOfEvents(cb, nextPageToken) {
-            var params = {auth: jwt, calendarId: GOOGLE_CALENDAR_ID, showDeleted: true, 
+            var params = {auth: jwt, calendarId: calendarId, showDeleted: true, 
                 singleEvents: true, 
                 timeMin: week_ago.format(),
                 timeMax: fortnight_away.format()
@@ -360,21 +439,29 @@ var getEventsFromGCal = function(CACHEFILE, done) {
         getListOfEvents(function(events) {
             fs.writeFile(CACHEFILE, JSON.stringify(events), function(err) {
                 if (err) { console.warn("Couldn't write cache file", err); }
-                renderWebsite(events, done);
+                renderWebsite(events, distance, done);
             });
         });
     });
 };
 
 exports.createWebsite = function(done) {
+    async.eachSeries(Object.keys(GOOGLE_CALENDAR_IDS), function(gckey, callback) {
+        var gc = GOOGLE_CALENDAR_IDS[gckey];
+        console.log("Creating calendar for events up to", gc.distance, "miles away");
+        createWebsiteForCalendar(gc.distance, gc.cal, callback);
+    });
+};
+
+var createWebsiteForCalendar = function(distance, calendarId, done) {
     // if there's a cache file locally and it's less than 50 minutes old, use it
-    var CACHEFILE = "./events.json.cache";
+    var CACHEFILE = "./events-" + calendarId + ".json.cache";
     fs.stat(CACHEFILE, function(err, stats) {
         if (!err && ((new Date()).getTime() - stats.mtime.getTime()) < 3000000) {
             fs.readFile(CACHEFILE, function(err, data) {
                 if (err) {
                     logger.warn("Tried to read cachefile", CACHEFILE, "and couldn't because", err);
-                    getEventsFromGCal(CACHEFILE, done);
+                    getEventsFromGCal(CACHEFILE, calendarId, distance, done);
                     return;
                 }
                 var events;
@@ -382,14 +469,14 @@ exports.createWebsite = function(done) {
                     events = JSON.parse(data);
                 } catch(e) {
                     logger.warn("Cachefile was not valid JSON:", e);
-                    getEventsFromGCal(CACHEFILE, done);
+                    getEventsFromGCal(CACHEFILE, calendarId, distance, done);
                     return;
                 }
                 logger.info("Read events from cache");
-                renderWebsite(events, done);
+                renderWebsite(events, distance, done);
             });
         } else {
-            getEventsFromGCal(CACHEFILE, done);
+            getEventsFromGCal(CACHEFILE, calendarId, distance, done);
         }
     });
 };
@@ -596,25 +683,25 @@ function deduper(existingUndeleted, results, callback) {
     callback(null, nresults, google_throw_away_as_dupes);
 }
 
-function throwAwayGoogleDupes(google_throw_away_as_dupes, existing, callback) {
+function throwAwayGoogleDupes(google_throw_away_as_dupes, existing, calendarId, callback) {
     /* Throw away Google dupes by actually deleting them. */
     async.eachSeries(Object.keys(google_throw_away_as_dupes), function(bioid, cb) {
         //console.log("Deleting Google item which is a dupe of another item", bioid, existing[bioid].summary, existing[bioid].start);
         gcal.events.delete({
             auth: jwt,
-            calendarId: GOOGLE_CALENDAR_ID,
+            calendarId: calendarId,
             eventId: bioid
         }, cb);
     }, callback);
 }
 
-function updateCalendar(results, existing, callback) {
+function updateCalendar(results, existing, calendarId, callback) {
     /* Now, go through each of our fetched events and either update them 
        if they exist, or create them if not. Note that we do not pass an
        err in the update/insert to the callback, because that will terminate
        the async.map; instead, we always say that there was no error, and
        then if there was we pass it inside the results, so we can check later. */
-    async.mapSeries(results, function(ev, callback) {
+    async.mapSeries(results, function(ev, mcallback) {
         var event_resource = {
             start: { dateTime: moment(ev.start).format() },
             end: { dateTime: moment(ev.end).format() },
@@ -635,33 +722,33 @@ function updateCalendar(results, existing, callback) {
             //console.log("Update event", ev.birminghamIOCalendarID);
             gcal.events.patch({
                 auth: jwt, 
-                calendarId: GOOGLE_CALENDAR_ID,
+                calendarId: calendarId,
                 eventId: ev.birminghamIOCalendarID,
                 resource: event_resource
             }, function(err, resp) {
                 if (err) {
-                    callback(null, {success: false, err: err, type: "update", event: ev});
+                    mcallback(null, {success: false, err: err, type: "update", event: ev});
                     return;
                 }
-                callback(null, {success: true, type: "update", event: ev});
+                mcallback(null, {success: true, type: "update", event: ev});
             });
         } else {
             var event_resource_clone = JSON.parse(JSON.stringify(event_resource));
             event_resource_clone.id = ev.birminghamIOCalendarID;
             gcal.events.insert({
                 auth: jwt, 
-                calendarId: GOOGLE_CALENDAR_ID,
+                calendarId: calendarId,
                 resource: event_resource_clone
             }, function(err, resp) {
                 if (err) {
-                    callback(null, {success: false, err: err, type: "insert", event: ev});
+                    mcallback(null, {success: false, err: err, type: "insert", event: ev});
                     return;
                 }
-                callback(null, {success: true, type: "insert", event: ev});
+                mcallback(null, {success: true, type: "insert", event: ev});
             });
         }
     }, function(err, results) {
-        if (err) { logger.warn("Update/insert got an error (this shouldn't happen!)", err); return; }
+        if (err) { logger.warn("Update/insert got an error (this shouldn't happen!)", err); return callback(); }
         var successes = [], failures = [], inserts = 0, updates = 0;
         results.forEach(function(r) {
             if (r.success) {
@@ -685,10 +772,94 @@ function updateCalendar(results, existing, callback) {
         } else {
             logger.info("Failed to deal with", failures.length, "events");
         }
+        callback();
     });
 }
 
-function handleListOfParsedEvents(err, results) {
+function toRad(value) { return value * Math.PI / 180; }
+function getDistance(p1, p2) {
+    var R = 3958.7558657440545; // Radius of earth in Miles
+    var p1lat = parseFloat(p1.lat), p2lat = parseFloat(p2.lat),
+        p1lon = parseFloat(p1.lon), p2lon = parseFloat(p2.lon);
+    var dLat = toRad(p2lat - p1lat);
+    var dLon = toRad(p2lon - p1lon);
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(p1lat)) * Math.cos(toRad(p2lat)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    var d = R * c;
+
+    return d; // in miles
+}
+
+var CACHED_GEOLOCS = {};
+function geolocateEvents(events, done) {
+    logger.info("Geolocating events");
+    var CENTRE = {lat: parseFloat(LOCATION_LAT), lon: parseFloat(LOCATION_LONG)};
+    async.mapSeries(events, function(event, callback) {
+        // NB: we trust the location field and geolocate it ourselves before we trust event.geo, which is not reliable
+        if (event.location && CACHED_GEOLOCS[event.location]) {
+            event.geo = CACHED_GEOLOCS[event.location];
+            event.distance = getDistance(event.geo, CENTRE);
+            callback(null, event);
+        } else if (event.location) {
+            // does not have geoloc, so look it up.
+            var url = "https://maps.googleapis.com/maps/api/geocode/json";
+            // we have a bunch of addresses that look like "The Victoria, http://birmingham.openguides.org/?The_Victoria"
+            // so fix them up a bit.
+            var replloc = event.location.replace(/, https?:\/\/[A-Za-z0-9.\?='\(\)\&;_/-]+$/, ", Birmingham");
+            request.get({
+                url: url, qs: {address: replloc, key: config.GOOGLE_GEOCODE_API_KEY}
+            }, function(err, response, body) {
+                if (err) { return callback(err); }
+                var jbody;
+                try {
+                    jbody = JSON.parse(body);
+                } catch(e) {
+                    // got error from google API
+                    logger.info("Couldn't parse Google geocoding API response", body);
+                    event.geo = CENTRE;
+                    event.location = "Birmingham";
+                    event.distance = 0;
+                    callback(null, event);
+                    return;
+                }
+                if (jbody.results && jbody.results.length > 0 && jbody.results[0].geometry && jbody.results[0].geometry.location && jbody.results[0].geometry.location.lat) {
+                    event.geo = {lat: jbody.results[0].geometry.location.lat, lon: jbody.results[0].geometry.location.lng};
+                    CACHED_GEOLOCS[event.location] = event.geo;
+                } else {
+                    event.geo = CENTRE;
+                    if (jbody.status == "ZERO_RESULTS") {
+                        logger.info("Treating unknown location", event.location, "as central");
+                        CACHED_GEOLOCS[event.location] = CENTRE; // might as well put this in the cache so we don't get it again
+                    } else {
+                        logger.info("Got bad result", body, "from geocoding API for event", event.summary, event.location);
+                    }
+                }
+                event.distance = getDistance(event.geo, CENTRE);
+
+                setTimeout(function() {
+                    callback(null, event);
+                }, 100); // rate limit on the google geocoding API of 10 requests per second, so wait a bit
+                return;
+            });
+        } else if (event.geo && event.geo.lat && event.geo.lon) {
+            // already has geoloc
+            event.distance = getDistance(event.geo, CENTRE);
+            callback(null, event);
+            return;
+        } else {
+            // does not have geoloc *or* location, so assume it's in central Birmingham
+            event.geo = CENTRE;
+            event.location = "Birmingham";
+            event.distance = 0;
+            callback(null, event);
+            return;
+        }
+    }, done);
+}
+
+function handleListOfParsedEvents(err, calendarId, results, done) {
     if (err) { 
         logger.error("We failed to create a list of events", err);
         return;
@@ -701,7 +872,7 @@ function handleListOfParsedEvents(err, results) {
 
         var respitems = [];
         function getListOfEvents(cb, nextPageToken) {
-            var params = {auth: jwt, calendarId: GOOGLE_CALENDAR_ID, showDeleted: true, singleEvents: true};
+            var params = {auth: jwt, calendarId: calendarId, showDeleted: true, singleEvents: true};
             if (nextPageToken) { params.pageToken = nextPageToken; }
             gcal.events.list(params, function(err, resp) {
                 if (err) { return cb(err); }
@@ -716,7 +887,7 @@ function handleListOfParsedEvents(err, results) {
 
         /* Get list of events */
         getListOfEvents(function(err, respitems) {
-            if (err) { logger.error("Problem getting existing events", err); return; }
+            if (err) { logger.error("Problem getting existing events", err); return done(); }
             // Make a list of existing events keyed by uid, which is the unique key we created
             var existing = {};
             respitems.forEach(function(ev) { existing[ev.id] = ev; });
@@ -740,23 +911,29 @@ function handleListOfParsedEvents(err, results) {
 
             deduper(existingUndeleted, results, function(err, results, google_deletes) {
                 if (err) { console.error("Error in deduper!", err); return; }
+
+
                 if (IS_DRY_RUN) {
                     logger.info("=== DRY RUN ONLY: aborting ===");
 
                     /* add debug code here */
 
-                    return;
+                    return done();
                 }
-                throwAwayGoogleDupes(google_deletes, existing, function(err) {
-                    if (err) { console.error("Deleting dupes already in Google failed!", err); return; }
-                    updateCalendar(results, existing, function(err) {
-                        if (err) { console.error("Updating the calendar failed", err); return; }
+
+                throwAwayGoogleDupes(google_deletes, existing, calendarId, function(err) {
+                    if (err) { console.error("Deleting dupes already in Google failed!", err); return done(); }
+                    updateCalendar(results, existing, calendarId, function(err) {
+                        if (err) { console.error("Updating the calendar failed", err); return done(); }
+
                         logger.info("== Events present in the Google calendar but not present in sources: %d ==", deletedUpstream.length);
                         deletedUpstream.forEach(function(duev) {
                             logger.info(duev.summary + " (" + duev.id + ")", duev.start.dateTime);
+                            done();
                         });
                     });
                 });
+
             });
         });
     });
@@ -805,7 +982,24 @@ function processICSData(err, results) {
             }
         }
         cb(null, events);
-    }, handleListOfParsedEvents);
+    }, function(err, results) {
+        if (err) {
+            console.log("Error processing ICS data", err);
+            return;
+        }
+        geolocateEvents(results, function(err, results) {
+            if (err) { console.error("Error in adding locations!", err); return; }
+            async.eachSeries(Object.keys(GOOGLE_CALENDAR_IDS), function(gckey, done) {
+                var gc = GOOGLE_CALENDAR_IDS[gckey];
+                logger.info("Processing calendar for distance", gc.distance, "miles");
+                handleListOfParsedEvents(null, gc.cal, results.filter(function(r) { return r.distance < gc.distance; }), done);
+            }, function(err) {
+                if (err) { // shouldn't happen; we report and swallow errors inside handleListOfParsedEvents
+                    logger.info("There was an error processing calendars for distance.", err);
+                }
+            });
+        });
+    });
 }
 
 function processICSURLs(err, results) {
@@ -844,10 +1038,12 @@ exports.mainJob = function mainJob() {
     // first, get a list of ics urls from various places
     async.parallel([
         fetchIcalUrlsFromLocalFile,
-        fetchIcalUrlsFromMeetup,
+        scrapeIcalUrlsFromMeetup,
         fetchICSFromEventBrite
     ], processICSURLs);
 };
+
+exports.scrapeIcalUrlsFromMeetup = scrapeIcalUrlsFromMeetup;
 
 if (require.main === module) {
     exports.mainJob();
