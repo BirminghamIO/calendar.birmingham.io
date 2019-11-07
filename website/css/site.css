@@ -112,6 +112,16 @@ span.desc {
     display: block;
 }
 
+a.twitter {
+    float: right;
+    width: 30px;
+    height: 30px;
+    margin: 0px 0px 10px 0px;
+    text-indent: -1000em;
+    background: url(../img/Twitter_Logo_Blue.svg) center center no-repeat;
+    background-size: contain;
+}
+
 @media (max-width: 600px) {
     body {
         background-image: url(../img/bgtall.jpg);

@@ -1,0 +1,23 @@
+{
+    "__notes__":
+       ["Each key is a unique initial substring of a meetup's URL, which applies to all",
+        "events organised by that meetup, and doesn't apply to any other events.",
+        "So, for a meetup on meetup.com, use, e.g., https://www.meetup.com/Angular-Birmingham/",
+        "(and include the terminal slash).",
+        "The value for that key is the twitter handle of that meetup's own account, without the ."],
+
+    "https://www.meetup.com/BirminghamWordPress/": "wpbhamuk",
+    "https://www.meetup.com/Angular-Birmingham/": "ngbrum",
+    "https://www.meetup.com/brumindies/": "brumindies",
+    "https://www.meetup.com/ScrumUK/": "scrumuk",
+    "https://www.meetup.com/brumphp/": "brumphp",
+    "https://www.meetup.com/meetup-group-MzfqIqCy/": "brumjs",
+    "https://www.meetup.com/Scrum-Master-Meetup-Birmingham/": "birminghamscrum",
+    "https://www.meetup.com/Women-In-Tech-Birmingham/": "womenintechbrum",
+    "https://www.meetup.com/Birmingham-Entrepreneurs-Meetup-Group/": "BrumPreneurs",
+    "https://www.meetup.com/Birmingham-DotNet-And-Xamarin-User-Group/": "xamarinbrum",
+    "https://www.meetup.com/Fusion-Technology-Meetup-Birmingham/": "fusionmeetup",
+    "https://codebar.io/birmingham": "codebarBrum",
+    "https://www.meetup.com/Silicon-Canal-Tech-Drinks": "Silicon_Canal"
+}
+
