@@ -249,6 +249,8 @@ function fetchICSFromEventBrite(cb) {
                 try {
                     obj = JSON.parse(response.body);
                 } catch(e) {
+                    logger.warn("statusCode=" + response.statusCode + " statusMessage=" + response.statusMessage + " " + url)
+                    logger.debug(response.body)
                     return cb(e);
                 }
                 if (!obj.events || !Array.isArray(obj.events)) {
