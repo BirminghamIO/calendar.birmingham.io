@@ -90,6 +90,9 @@
             <div class="eventheader">
                 <strong class="daydate"><span class="day">{{datepart 'D'}}</span>
                     <span class="month">{{datepart 'MMM'}}</span></strong>
+                {{#if twitter}}
+                <a class="twitter" href="https://twitter.com/{{twitter}}">Twitter</a>
+                {{/if}}
                 <a href="{{{this.htmlLink}}}" class="summary">{{{this.summary}}}</a>
                 <time datetime="{{this.start.dateTime}}">{{datepart 'dddd'}} {{{datepart 'LT'}}}&ndash;{{{enddatepart 'LT'}}}</time>
                 <div style='clear:left'></div>
