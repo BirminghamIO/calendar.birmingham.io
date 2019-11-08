@@ -334,10 +334,10 @@ var renderWebsite = function(events, done) {
                 return '<a href="' + s + '">' + s + '</a>';
             });
             text = text.replace(/(^|\s)(@(\w+))/gi, function (whole, beforespace, twitterhandle, twitterhandleword) {
-                return '<a href="http://twitter.com/' + twitterhandleword + '">' + twitterhandle + '</a>';
+                return '<a href="https://twitter.com/' + twitterhandleword + '">' + twitterhandle + '</a>';
             });
             text = text.replace(/(^|[^&])#(\w+)/gi, function (s) {
-                return '<a href="http://search.twitter.com/search?q=' + s.replace(/#/,'%23') + '">' + s + '</a>';
+                return '<a href="https://search.twitter.com/search?q=' + s.replace(/#/,'%23') + '">' + s + '</a>';
             });
             return new Handlebars.SafeString(text);
         });
