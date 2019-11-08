@@ -406,6 +406,12 @@ var getEventsFromGCal = function(CACHEFILE, done) {
 exports.createWebsite = function(done) {
     // if there's a cache file locally and it's less than 50 minutes old, use it
     var CACHEFILE = "./events.json.cache";
+    var twitters = {};
+    try {
+        twitters = require("./twitters.json");
+    } catch(e) {
+        logger.warn("Couldn't read twitter handles list for meetups", e);
+    }
     fs.stat(CACHEFILE, function(err, stats) {
         if (!err && ((new Date()).getTime() - stats.mtime.getTime()) < 3000000) {
             fs.readFile(CACHEFILE, function(err, data) {
@@ -422,6 +428,13 @@ exports.createWebsite = function(done) {
                     getEventsFromGCal(CACHEFILE, done);
                     return;
                 }
+                events.forEach(function(ev, idx) {
+                    Object.keys(twitters).forEach(function(tw) {
+                        if (ev.description && ev.description.indexOf(tw) > -1) {
+                            ev.twitter = twitters[tw];
+                        }
+                    });
+                });
                 logger.info("Read events from cache");
                 renderWebsite(events, done);
             });
