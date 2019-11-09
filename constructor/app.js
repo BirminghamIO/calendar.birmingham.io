@@ -434,6 +434,10 @@ exports.createWebsite = function(done) {
                     Object.keys(twitters).forEach(function(tw) {
                         if (ev.description && ev.description.indexOf(tw) > -1) {
                             ev.twitter = twitters[tw];
+                            logger.debug("Found twitter",
+                                         ev.twitter, ",",
+                                         ev.summary, ",",
+                                         ev.start.dateTime);
                         }
                     });
                 });
