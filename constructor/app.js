@@ -11,7 +11,10 @@ var ical = require("ical"), // parser
     Handlebars = require("handlebars"),
     logger = require("js-logger"),
     cliArgs = require("command-line-args"),
-    cheerio = require("cheerio");
+    cheerio = require("cheerio"),
+    { promisify } = require("util"),
+    readFileAsync = promisify(fs.readFile),
+    getAsync = promisify(request.get);
 
 // Command line arguments
 var cli = cliArgs([
@@ -210,6 +213,104 @@ function scrapeIcalUrlsFromMeetup(cb) {
         })
         cb(null, icsurls);
     })
+}
+
+function haversineDistance(coords1, coords2, isMiles) {
+  function toRad(x) {
+    return x * Math.PI / 180;
+  }
+
+  var lon1 = coords1[0];
+  var lat1 = coords1[1];
+
+  var lon2 = coords2[0];
+  var lat2 = coords2[1];
+
+  var R = 6371; // km
+
+  var x1 = lat2 - lat1;
+  var dLat = toRad(x1);
+  var x2 = lon2 - lon1;
+  var dLon = toRad(x2)
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  var d = R * c;
+
+  if(isMiles) d /= 1.60934;
+
+  return d;
+}
+
+async function scrapeICSFromEventBriteAsync() {
+    let evdata = await readFileAsync("explicitEventBriteOrganisers.json");
+    let evdataj = JSON.parse(evdata);
+    let events = await Promise.all(evdataj.map(async evorg => {
+        let response = await getAsync(evorg.link);
+        let $ = cheerio.load(response.body);
+        let pageevents = $('#live_events .list-card-v2');
+        let range = []; for (let i=0; i < pageevents.length; i++) { range.push(i); }
+        let subevents = await Promise.all(range.map(async idx => {
+            let evel = pageevents[idx];
+            let event = {};
+            event.url = $(evel).attr("data-share-url");
+            let subpage = await getAsync(event.url);
+            let $$ = cheerio.load(subpage.body);
+            event.desc = $$('[data-automation="listing-event-description"]').text().replace(/\s\s+/g, " ");
+            event.title = $$('[data-automation="listing-title"]').text();
+            let timeEl = $$('[data-automation="event-details-time"]');
+            let startStopMetas = $(timeEl).parent().find("meta");
+            event.start = $$(startStopMetas[0]).attr("content");
+            event.end = $$(startStopMetas[1]).attr("content");
+            let details = $$('.event-details__data');
+            event.location = $$(details[1]).text().trim().replace(/View Map/g, "").replace(/\s\s+/g, ", ");
+            let maplinks = $$(details[1]).find("a");
+            let latlon = new URLSearchParams($$(maplinks[maplinks.length-1]).attr("href")).get("q");
+            event.lat = parseFloat(latlon.split(",")[0]);
+            event.lon = parseFloat(latlon.split(",")[1]);
+            event.uid = $$("body").attr("data-event-id");
+
+            // check if it's within range.
+            let distance = haversineDistance([parseFloat(LOCATION_LAT), parseFloat(LOCATION_LONG)], [event.lat, event.lon], true);
+            if (distance <= parseFloat(LOCATION_RADIUS)) {
+                return event;
+            } else {
+                return null;
+            }
+
+        }))
+        return subevents;
+    }))
+    events = [].concat(...events).filter(s => s); // flatten
+
+    // we now have a collection of eventbrite events. Turn them into ICS.
+    // this seems a bit stupid, since we're just going to have to parse the ICS data
+    // back into objects later, but it means that the core functionality continues
+    // as normal, and also that we know we're not relying on weird EB-specific stuff
+    // which doesn't fit into an ICS format.
+    let ics = new icalendar.iCalendar();
+    events.forEach(function(ebev) {
+        let ev = ics.addComponent('VEVENT');
+        ev.setSummary(ebev.title);
+        let start = new Date(), end = new Date();
+        start.setTime(Date.parse(ebev.start));
+        end.setTime(Date.parse(ebev.end));
+        ev.setDate(start, end);
+        ev.setLocation(ebev.location);
+        ev.addProperty("DESCRIPTION", ebev.desc + "\n" + ebev.url);
+        ev.addProperty("UID", ebev.uid);
+    });
+    return {source: "eventbrite", icsdata: ics.toString()}
+}
+
+function scrapeICSFromEventBrite(cb) {
+    scrapeICSFromEventBriteAsync()
+        .then(results => { cb(null, results); })
+        .catch(err => {
+            console.log("There was an error reading Eventbrite stuff:", err)
+            cb(null, []);
+        })
 }
 
 function fetchICSFromEventBrite(cb) {
@@ -901,11 +1002,12 @@ exports.mainJob = function mainJob() {
     async.parallel([
         fetchIcalUrlsFromLocalFile,
         scrapeIcalUrlsFromMeetup,
-        fetchICSFromEventBrite
+        scrapeICSFromEventBrite
     ], processICSURLs);
 };
 
 exports.scrapeIcalUrlsFromMeetup = scrapeIcalUrlsFromMeetup;
+exports.scrapeICSFromEventBrite = scrapeICSFromEventBrite;
 
 if (require.main === module) {
     exports.mainJob();
