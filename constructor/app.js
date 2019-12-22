@@ -14,7 +14,8 @@ var ical = require("ical"), // parser
     cheerio = require("cheerio"),
     { promisify } = require("util"),
     readFileAsync = promisify(fs.readFile),
-    getAsync = promisify(request.get);
+    getAsync = promisify(request.get),
+    searchparams = require('url-search-params-polyfill');
 
 // Command line arguments
 var cli = cliArgs([
