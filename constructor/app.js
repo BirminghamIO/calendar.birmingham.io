@@ -258,19 +258,35 @@ async function scrapeICSFromEventBriteAsync() {
             event.url = $(evel).attr("data-share-url");
             let subpage = await getAsync(event.url);
             let $$ = cheerio.load(subpage.body);
-            event.desc = $$('[data-automation="listing-event-description"]').text().replace(/\s\s+/g, " ");
-            event.title = $$('[data-automation="listing-title"]').text();
-            let timeEl = $$('[data-automation="event-details-time"]');
-            let startStopMetas = $(timeEl).parent().find("meta");
-            event.start = $$(startStopMetas[0]).attr("content");
-            event.end = $$(startStopMetas[1]).attr("content");
-            let details = $$('.event-details__data');
-            event.location = $$(details[1]).text().trim().replace(/View Map/g, "").replace(/\s\s+/g, ", ");
-            let maplinks = $$(details[1]).find("a");
-            let latlon = new URLSearchParams($$(maplinks[maplinks.length-1]).attr("href")).get("q");
-            event.lat = parseFloat(latlon.split(",")[0]);
-            event.lon = parseFloat(latlon.split(",")[1]);
-            event.uid = $$("body").attr("data-event-id");
+
+            // there are two types of eventbrite pages; ones where you can get a ticket,
+            // and ones which are mostly an event listing. Check which one we have
+            let no_ticket_page = $$('[data-automation="listing-event-description"]').length > 0;
+
+            if (no_ticket_page) {
+                event.desc = $$('[data-automation="listing-event-description"]').text().replace(/\s\s+/g, " ");
+                event.title = $$('[data-automation="listing-title"]').text();
+                let timeEl = $$('[data-automation="event-details-time"]');
+                let startStopMetas = $(timeEl).parent().find("meta");
+                event.start = $$(startStopMetas[0]).attr("content");
+                event.end = $$(startStopMetas[1]).attr("content");
+                let details = $$('.event-details__data');
+                event.location = $$(details[1]).text().trim().replace(/View Map/g, "").replace(/\s\s+/g, ", ");
+                let maplinks = $$(details[1]).find("a");
+                let latlon = new URLSearchParams($$(maplinks[maplinks.length-1]).attr("href")).get("q");
+                event.lat = parseFloat(latlon.split(",")[0]);
+                event.lon = parseFloat(latlon.split(",")[1]);
+                event.uid = $$("body").attr("data-event-id");
+            } else {
+                event.title = $$('meta[name="twitter:title"]').attr("content");
+                event.description = $$('meta[name="twitter:description"]').attr("content");
+                event.start = $$(".dtstart .value-title").attr("title");
+                event.end = $$(".dtend .value-title").attr("title");
+                event.location = $$("h2.location").text().trim().replace(/\s\s+/g, ", ");
+                event.lat = parseFloat($$('meta[property="event:location:latitude"]').attr("content"));
+                event.lon = parseFloat($$('meta[property="event:location:longitude"]').attr("content"));
+                event.uid = $$("body").attr("data-event-id");
+            }
 
             // check if it's within range.
             let distance = haversineDistance([parseFloat(LOCATION_LAT), parseFloat(LOCATION_LONG)], [event.lat, event.lon], true);
