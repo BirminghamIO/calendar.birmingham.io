@@ -274,8 +274,15 @@ async function scrapeICSFromEventBriteAsync() {
                 event.location = $$(details[1]).text().trim().replace(/View Map/g, "").replace(/\s\s+/g, ", ");
                 let maplinks = $$(details[1]).find("a");
                 let latlon = new URLSearchParams($$(maplinks[maplinks.length-1]).attr("href")).get("q");
-                event.lat = parseFloat(latlon.split(",")[0]);
-                event.lon = parseFloat(latlon.split(",")[1]);
+                if (latlon) {
+                    event.lat = parseFloat(latlon.split(",")[0]);
+                    event.lon = parseFloat(latlon.split(",")[1]);
+                } else {
+                    // No map details on this page at all. Sigh. Pretend it's in
+                    // central Birmingham; specifically, New St Station.
+                    event.lat = 52.477795;
+                    event.lon = -1.898966;
+                }
                 event.uid = $$("body").attr("data-event-id");
             } else {
                 event.title = $$('meta[name="twitter:title"]').attr("content");
