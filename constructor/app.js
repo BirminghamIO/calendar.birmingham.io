@@ -7,7 +7,6 @@ var ical = require("ical"), // parser
     crypto = require("crypto"),
     moment = require("moment-range"),
     fs = require("fs"),
-    time = require("time"),
     Handlebars = require("handlebars"),
     logger = require("js-logger"),
     cliArgs = require("command-line-args"),
@@ -89,8 +88,11 @@ var MEETUP_URL = "https://api.meetup.com/find/groups?" +
                     "&page=4000" + /* results per page */
                     "&key=";
 
+/*
 var tz = new time.Date();
 var TIMEZONE = tz.getTimezone();
+*/
+var TIMEZONE = "Etc/UTC";
 
 /* FetchIcalUrls functions have to return a list of {source, url} objects.
    A source must be a short word which identifies the source somehow
@@ -795,7 +797,7 @@ function updateCalendar(results, existing, callback) {
        err in the update/insert to the callback, because that will terminate
        the async.map; instead, we always say that there was no error, and
        then if there was we pass it inside the results, so we can check later. */
-    async.mapSeries(results, function(ev, callback) {
+    function processOneEvent(ev, callback) {
         var event_resource = {
             start: { dateTime: moment(ev.start).format() },
             end: { dateTime: moment(ev.end).format() },
@@ -841,7 +843,8 @@ function updateCalendar(results, existing, callback) {
                 callback(null, {success: true, type: "insert", event: ev});
             });
         }
-    }, function(err, results) {
+    }
+    function processResults(err, results) {
         if (err) { logger.warn("Update/insert got an error (this shouldn't happen!)", err); return; }
         var successes = [], failures = [], inserts = 0, updates = 0;
         results.forEach(function(r) {
@@ -866,7 +869,23 @@ function updateCalendar(results, existing, callback) {
         } else {
             logger.info("Failed to deal with", failures.length, "events");
         }
-    });
+    }
+    function waitABit(fn, the_bit) {
+        return function(...args) {
+            setTimeout(fn, the_bit, ...args);
+        }
+    }
+
+    // If we hit the Google API too fast here then we overrun the
+    // 'Queries per user per 100 seconds' quota. Exactly what this quota IS
+    // seems to be a deep dark secret that we aren't allowed to know in case
+    // the knowledge destroys our brains or something, so backing off is hard
+    // So instead we handle it by just delaying everything with a timeout.
+    // The number in the call below is how long to wait between each event
+    // so that we don't overrun the quota. This will inevitably lead to the
+    // whole script taking longer to run. Tweak the number so it doesn't overrun
+    // the quota.
+    async.mapSeries(results, waitABit(processOneEvent, 30), processResults);
 }
 
 function handleListOfParsedEvents(err, results) {
