@@ -885,7 +885,7 @@ function updateCalendar(results, existing, callback) {
     // so that we don't overrun the quota. This will inevitably lead to the
     // whole script taking longer to run. Tweak the number so it doesn't overrun
     // the quota.
-    async.mapSeries(results, waitABit(processOneEvent, 30), processResults);
+    async.mapSeries(results, waitABit(processOneEvent, 500), processResults);
 }
 
 function handleListOfParsedEvents(err, results) {
