@@ -1,0 +1,36 @@
+{
+  "name": "calendar-bio-constructor",
+  "version": "1.0.0",
+  "description": "Fetches events, combines them and stores them in the Google calendar",
+  "main": "src/index.mjs",
+  "scripts": {
+    "dev": "nodemon --watch 'src/**' --ext 'mjs,json' --exec 'node src/index.mjs -d'",
+    "format": "prettier --write 'src/**/*.{mjs,js}'",
+    "test": "node src/index.mjs -d"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BirminghamIO/calendar"
+  },
+  "author": "Stuart Langridge <sil@kryogenix.org>",
+  "contributors": [
+    "James Vickery <dev@jmsv.me>"
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/BirminghamIO/calendar/issues"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "cheerio": "^1.0.0-rc.10",
+    "commander": "^8.1.0",
+    "consola": "^2.15.3",
+    "handlebars": "^4.7.7",
+    "puppeteer": "^10.2.0",
+    "query-string": "^7.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.12",
+    "prettier": "^2.3.2"
+  }
+}

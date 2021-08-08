@@ -1,0 +1,72 @@
+[
+    {
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_eta5m0cipet4er0i0rnhj5em48%40group.calendar.google.com/public/basic.ics",
+        "source": "badego",
+        "notes": "Manually created calendar for Badego in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_eta5m0cipet4er0i0rnhj5em48%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_39iffiiscjisnhkeuua7uotlc8%40group.calendar.google.com/public/basic.ics",
+        "source": "birminghamlug",
+        "notes": "Manually created calendar for Birmingham LUG in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_39iffiiscjisnhkeuua7uotlc8%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_oipjdu1b8e5n9snq4gcq569p40%40group.calendar.google.com/public/basic.ics",
+        "source": "birminghamsql",
+        "notes": "Manually created calendar for Birmingham SQL Server User Group in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_oipjdu1b8e5n9snq4gcq569p40%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_j54gsl84m9d4150pglmfj65mj8%40group.calendar.google.com/public/basic.ics",
+        "source": "creativenetworks",
+        "notes": "Manually created calendar for Creative Networks in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_j54gsl84m9d4150pglmfj65mj8%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/limeblast.co.uk_dtbevmpf6od43s3g43onpp7j6s%40group.calendar.google.com/public/basic.ics",
+        "source": "ucbirminghamusergroup",
+        "notes": "Manually created calendar for UC Birmingham User Group in info@birmingham.io account, https://www.google.com/calendar/embed?src=limeblast.co.uk_dtbevmpf6od43s3g43onpp7j6s%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/bumi95se5qmk6rvg4k770d8vvk%40group.calendar.google.com/public/basic.ics",
+        "source": "perlmongers",
+        "notes": "Perl Mongers, feed through Google Calendar because their feed doesn't have UIDs"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/orangejon.com_qv7nmqln3k5cok7rr2oqkqlil4%40group.calendar.google.com/public/basic.ics",
+        "source": "ueksbrum",
+        "notes": "@UXBrum on twitter, from their own Google Calendar at https://www.google.com/calendar/embed?src=orangejon.com_qv7nmqln3k5cok7rr2oqkqlil4%40group.calendar.google.com&ctz=Europe/London"
+    },
+    {
+        "url": "http://mmug.org.uk/calendar/ical",
+        "source": "mmug",
+        "notes": "Midlands Macintosh User Group, from mmug.org.uk and @dombarnes on talk.birmingham.io"
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/hbb0gijc025n1kvlgaigscfmjo%40group.calendar.google.com/public/basic.ics",
+        "source": "brumjs",
+        "notes": "Brum.js - Birmingham JavaScript user group."
+    },
+    {
+        "url": "https://www.google.com/calendar/ical/siliconcanal.co.uk_u80vtml67gcacsgt72p61gkavg@group.calendar.google.com/public/basic.ics",
+        "source": "siliconcanalwebsite",
+        "notes": "Silicon Canal user event submissions"
+    },
+    {
+        "url": "https://calendar.google.com/calendar/ical/talis.com_e65e0bvuol73o8k5gtgsmsbhu4%40group.calendar.google.com/public/basic.ics",
+        "source": "talis",
+        "notes": "Codelicious - Code, Food and Networking"
+    },
+    {
+        "url": "https://attending.io/events/ixdabirmingham1.ics",
+        "source": "ixdabirmingham",
+        "notes": "Interaction Design Association (IxDA) chapter for Birmingham, UK (@IxDABirmingham)"
+    },
+    {
+        "url": "https://api.meetup.com/Worcester-Source-Meetup/upcoming.ical",
+        "source": "Worcester Source",
+        "notes": "A group for anyone interested in software development, DevOps, and technology in general."
+    },
+    {
+        "url": "https://calendar.google.com/calendar/ical/limeblast.co.uk_8ij70sdkvphvknaul9cc2ulb50%40group.calendar.google.com/public/basic.ics",
+        "source": "birminghamiomanual",
+        "notes": "The Birmingham.IO one-off manual events calendar, for events which do not have their own iCal feed, and which can be edited by the b.io admin team"
+    }
+]
