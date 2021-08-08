@@ -1,6 +1,8 @@
 import fs from "fs/promises";
 import cheerio from "cheerio";
 import axios from "axios";
+import icalGenerator from "ical-generator";
+import moment from "moment";
 
 import logger from "../logger.mjs";
 
@@ -58,6 +60,7 @@ export const getEventbriteEvents = async () => {
   const events = eventPagesHtmlFlat.map((eventPageHtml) => {
     const $ = cheerio.load(eventPageHtml);
 
+    // TODO: Format correctly here to replace `.map` into calendar
     return {
       title: $('meta[name="twitter:title"]').attr("content"),
       description: $('meta[name="twitter:description"]').attr("content"),
@@ -72,10 +75,21 @@ export const getEventbriteEvents = async () => {
     };
   });
 
-  console.log(`Eventbrite events:`, events);
+  const calendar = icalGenerator({
+    events: events.map((event) => ({
+      id: event.uid,
+      summary: event.title,
+      description: event.description,
+      start: moment(event.start),
+      end: moment(event.end),
+      location:
+        event.lat && event.lon
+          ? { title: event.location, geo: { lat: event.lat, lon: event.lon } }
+          : event.location,
+    })),
+  });
 
-  // TODO: Return events as ical data
-  return { source: "eventbrite", icsdata: "" };
+  return { source: "eventbrite", icsdata: calendar.toString() };
 };
 
 const parseLatLong = (text) => {
