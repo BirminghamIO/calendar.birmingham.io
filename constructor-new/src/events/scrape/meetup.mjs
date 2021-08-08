@@ -48,6 +48,7 @@ export default async () => {
     ]);
 
     // Return page HTML
+    // We need to `await` this line to avoid closing the browser too early
     return await page.content();
   } finally {
     logger.debug("Close browser");
