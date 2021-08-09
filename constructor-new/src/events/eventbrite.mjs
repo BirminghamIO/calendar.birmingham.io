@@ -7,9 +7,8 @@ import moment from "moment";
 import logger from "../logger.mjs";
 
 export const getEventbriteEvents = async () => {
-  const filename = "../data/explicitEventBriteOrganisers.json";
-  const fileUrl = new URL(filename, import.meta.url);
-  const eventbriteOrgsJson = await fs.readFile(fileUrl);
+  const filename = "../../data/explicitEventBriteOrganisers.json";
+  const eventbriteOrgsJson = await fs.readFile(new URL(filename, import.meta.url));
 
   const eventbriteOrgs = JSON.parse(eventbriteOrgsJson);
 
