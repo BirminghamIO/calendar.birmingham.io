@@ -1,9 +1,9 @@
 import test from "ava";
-
-import fs from "fs";
 import sinon from "sinon";
 
-import { getLocalEvents } from "../../src/events/local.mjs";
+import fs from "fs";
+
+import { getLocalEvents } from "../../src/events/local.js";
 
 test("Load event iCal URLs from local JSON", async (t) => {
   // Arrange
@@ -21,5 +21,10 @@ test("Load event iCal URLs from local JSON", async (t) => {
   const events = await getLocalEvents();
 
   // Assert
-  t.snapshot(events);
+  t.deepEqual(events, [
+    {
+      source: "sauce",
+      url: "https://github.com/BirminghamIO/calendar.birmingham.io",
+    },
+  ]);
 });

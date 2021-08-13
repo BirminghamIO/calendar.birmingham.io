@@ -2,12 +2,14 @@
   "name": "calendar-bio-constructor",
   "version": "1.0.0",
   "description": "Fetches events, combines them and stores them in the Google calendar",
-  "main": "src/index.mjs",
+  "main": "src/index.js",
+  "type": "module",
   "scripts": {
-    "start": "node src/index.mjs",
-    "dev": "nodemon --watch 'src/**' --ext 'mjs,json' --exec 'node src/index.mjs -d'",
-    "format": "prettier --write 'src/**/*.{mjs,js}'",
+    "start": "node src/index.js",
+    "dev": "nodemon --watch 'src/**' --ext 'js,json' --exec 'node src/index.js -d'",
+    "format": "prettier --write '{src,tests}/**/*.{js,html,json}'",
     "test": "ava",
+    "test:watch": "ava --watch",
     "snapshots": "ava -u"
   },
   "repository": {

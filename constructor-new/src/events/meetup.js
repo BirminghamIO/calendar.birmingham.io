@@ -1,9 +1,9 @@
 import cheerio from "cheerio";
 
-import meetupScrape from "./scrape/meetup.mjs";
+import meetupScrape from "./scrape/meetup.js";
 
-export const getMeetupEvents = async () => {
-  const html = await meetupScrape();
+export const getMeetupEvents = async (html) => {
+  html = html || (await meetupScrape());
 
   const $ = cheerio.load(html);
 

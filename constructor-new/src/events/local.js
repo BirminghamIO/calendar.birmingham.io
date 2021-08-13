@@ -1,6 +1,6 @@
 import { promises as fsPromises } from "fs";
 
-import logger from "../logger.mjs";
+import logger from "../logger.js";
 
 export const getLocalEvents = async () => {
   const filename = "../../data/explicitIcalUrls.json";

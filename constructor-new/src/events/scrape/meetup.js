@@ -1,8 +1,8 @@
 import queryString from "query-string";
 import puppeteer from "puppeteer";
 
-import logger from "../../logger.mjs";
-import { options } from "../../cli.mjs";
+import logger from "../../logger.js";
+import { options } from "../../cli.js";
 
 const baseUrl = "https://www.meetup.com/find";
 const searchParams = {
@@ -38,7 +38,8 @@ export default async () => {
     await page.click(optionId);
 
     // Wait until loading has stopped
-    await page.waitForSelector('div[data-testid="results-loading-block"]', { hidden: true });
+    const loadingSelector = 'div[data-testid="results-loading-block"]';
+    await page.waitForSelector(loadingSelector, { hidden: true });
 
     // Wait for results (or the "no results" icon)
     const opt = { timeout: 5000, visible: true };

@@ -1,6 +1,6 @@
 import consola from "consola";
 
-import { options } from "./cli.mjs";
+import { options } from "./cli.js";
 
 const logger = consola.create({
   level: options.debug ? consola.LogLevel.Debug : consola.LogLevel.Log,

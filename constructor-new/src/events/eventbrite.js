@@ -4,7 +4,7 @@ import axios from "axios";
 import icalGenerator from "ical-generator";
 import moment from "moment";
 
-import logger from "../logger.mjs";
+import logger from "../logger.js";
 
 export const getEventbriteEvents = async () => {
   const filename = "../../data/explicitEventBriteOrganisers.json";
@@ -61,8 +61,8 @@ export const getEventbriteEvents = async () => {
 
     // TODO: Format correctly here to replace `.map` into calendar
     return {
-      title: $('meta[name="twitter:title"]').attr("content"),
-      description: $('meta[name="twitter:description"]').attr("content"),
+      title: $('meta[property="og:title"]').attr("content"),
+      description: $('meta[property="og:description"]').attr("content"),
       start: new Date($("meta[property='event:start_time']").attr("content")),
       end: new Date($("meta[property='event:end_time']").attr("content")),
       location:

@@ -29,7 +29,7 @@ npm install
 Run CLI:
 
 ```
-$ node src/index.mjs -h
+$ node src/index.js -h
 Usage: index [options]
 
 Options:
