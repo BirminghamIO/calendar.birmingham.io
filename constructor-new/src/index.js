@@ -1,7 +1,7 @@
+import fs from "fs/promises";
+
 import logger from "./logger.js";
-import { getLocalEvents } from "./events/local.js";
-import { getMeetupEvents } from "./events/meetup.js";
-import { getEventbriteEvents } from "./events/eventbrite.js";
+import { getLocalEvents, getMeetupEvents, getEventbriteEvents } from "./loaders/index.js";
 
 const cli = async () => {
   logger.info("Getting iCal URLs");
@@ -12,7 +12,8 @@ const cli = async () => {
     getEventbriteEvents(),
   ]);
 
-  logger.success(events);
+  await fs.writeFile("events-dump.json", JSON.stringify(events, null, 2));
+  logger.debug("Events written to ./events-dump.json");
 };
 
 cli();
