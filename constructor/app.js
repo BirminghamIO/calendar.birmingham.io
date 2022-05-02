@@ -88,10 +88,6 @@ var MEETUP_URL = "https://api.meetup.com/find/groups?" +
                     "&page=4000" + /* results per page */
                     "&key=";
 
-/*
-var tz = new time.Date();
-var TIMEZONE = tz.getTimezone();
-*/
 var TIMEZONE = "Etc/UTC";
 
 /* FetchIcalUrls functions have to return a list of {source, url} objects.
