@@ -9,7 +9,7 @@ var ical = require("ical"), // parser
     fs = require("fs"),
     Handlebars = require("handlebars"),
     logger = require("js-logger"),
-    cliArgs = require("command-line-args"),
+    commandLineArgs = require("command-line-args"),
     cheerio = require("cheerio"),
     { promisify } = require("util"),
     readFileAsync = promisify(fs.readFile),
@@ -17,17 +17,21 @@ var ical = require("ical"), // parser
     searchparams = require('url-search-params-polyfill');
 
 // Command line arguments
-var cli = cliArgs([
+const optionDefinitions = [
     { name: "help", type: Boolean, alias: "h", description: "show usage" },
     { name: "quiet", type: Boolean, alias: "q", description: "Only show errors" },
     { name: "verbose", type: Boolean, alias: "v", description: "verbose (show warnings)"},
     { name: "debug", type: Boolean, alias: "d", description: "Show all messages"},
     { name: "dryrun", type: Boolean, alias: "r",
         description: "Dry run: fetch all sources and print results, but do not update the actual calendar"}
-]);
-var argv = cli.parse();
+]
+var argv = commandLineArgs(optionDefinitions)
 if(argv.help) {
-    console.log(cli.getUsage());
+    console.log("--help Show this help")
+    console.log("Usage node app [OPTIONS]")
+        for (const item of optionDefinitions) {
+            console.log("  --" + item.name + " " + item.description)
+    }
     process.exit(0);
 }
 

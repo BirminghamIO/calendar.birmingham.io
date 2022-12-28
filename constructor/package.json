@@ -27,7 +27,7 @@
     "readline": "0.0.8",
     "request": "~2.68.0",
     "js-logger": "~1.0.0",
-    "command-line-args": "~0.5.9",
+    "command-line-args": "~5.2.1",
     "url-search-params-polyfill": "^7.0.1"
   },
   "devDependencies": {
