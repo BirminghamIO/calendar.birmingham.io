@@ -31,7 +31,6 @@
   },
   "devDependencies": {
     "mitm": "^1.1.0",
-    "mocha": "^2.2.5",
     "rewire": "^2.3.4",
     "should": "^7.0.1"
   }
