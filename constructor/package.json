@@ -16,7 +16,7 @@
     "url": "https://github.com/BirminghamIO/calendar/issues"
   },
   "dependencies": {
-    "async": "~1.2.1",
+    "async": "~3.2.4",
     "cheerio": "^1.0.0-rc.3",
     "googleapis": "~2.0.5",
     "handlebars": "^4.7.7",
