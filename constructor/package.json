@@ -30,7 +30,7 @@
     "url-search-params-polyfill": "^7.0.1"
   },
   "devDependencies": {
-    "mitm": "^1.1.0",
+    "mitm": "^1.7.2",
     "rewire": "^2.3.4",
     "should": "^7.0.1"
   }
