@@ -24,7 +24,7 @@
     "icalendar": "^0.7.1",
     "moment": "^2.10.3",
     "moment-range": "~1.0.9",
-    "request": "~2.68.0",
+    "request": "~2.88.2",
     "js-logger": "~1.0.0",
     "command-line-args": "~5.2.1",
     "url-search-params-polyfill": "^7.0.1"
